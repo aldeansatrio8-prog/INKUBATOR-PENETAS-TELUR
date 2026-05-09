@@ -3,55 +3,80 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Inkubator Smart - IoT Control</title>
+    <title>Smart Incubator Pro - IoT</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
-        :root { --bg: #f8fafc; --card: #ffffff; --primary: #3b82f6; --danger: #ef4444; --success: #10b981; }
-        body { font-family: 'Inter', sans-serif; background: var(--bg); margin: 0; padding: 20px; text-align: center; }
-        .container { max-width: 900px; margin: auto; }
-        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-top: 20px; }
-        .card { background: var(--card); padding: 20px; border-radius: 15px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
-        .value { font-size: 2rem; font-weight: bold; margin: 10px 0; color: #1e293b; }
-        .btn-group { display: flex; flex-direction: column; gap: 10px; margin-top: 15px; }
-        button { padding: 12px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; transition: 0.3s; }
-        .btn-auto { background: #6366f1; color: white; }
-        .btn-manual { background: #f59e0b; color: white; }
-        .btn-on { background: var(--success); color: white; }
-        .btn-off { background: var(--danger); color: white; }
-        button:hover { opacity: 0.8; transform: scale(1.02); }
-        .status-badge { padding: 5px 10px; border-radius: 20px; font-size: 0.8rem; background: #e2e8f0; color: #475569; }
+        :root { --bg: #f1f5f9; --card: #ffffff; --primary: #3b82f6; --danger: #ef4444; --success: #10b981; --warning: #f59e0b; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); margin: 0; padding: 20px; color: #1e293b; }
+        .container { max-width: 1000px; margin: auto; }
+        .header { margin-bottom: 30px; text-align: center; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; }
+        .card { background: var(--card); padding: 20px; border-radius: 18px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); text-align: center; }
+        .value { font-size: 2.2rem; font-weight: bold; margin: 10px 0; }
+        .label { font-size: 1rem; color: #64748b; font-weight: 600; text-transform: uppercase; }
+        .btn-group { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px; }
+        button { padding: 12px; border: none; border-radius: 10px; cursor: pointer; font-weight: bold; color: white; transition: 0.2s; }
+        .btn-auto { background: #6366f1; grid-column: span 2; }
+        .btn-manual { background: var(--warning); grid-column: span 2; }
+        .btn-on { background: var(--success); }
+        .btn-off { background: var(--danger); }
+        button:hover { filter: brightness(0.9); transform: scale(1.02); }
+        .status-mode { display: inline-block; padding: 5px 15px; border-radius: 20px; background: #cbd5e1; font-size: 0.9rem; margin-top: 10px; }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1><i class="fa-solid fa-microchip"></i> Panel Kontrol Inkubator</h1>
+        <div class="header">
+            <h1><i class="fa-solid fa-microchip"></i> Smart Incubator Pro</h1>
+            <div id="mode-badge" class="status-mode">Menghubungkan...</div>
+        </div>
         
         <div class="grid">
             <div class="card">
-                <i class="fa-solid fa-thermometer-half" style="color: #ef4444;"></i> Suhu
-                <div class="value" id="disp-suhu">--</div>
-                <span class="status-badge">Real-time</span>
+                <i class="fa-solid fa-temperature-three-quarters fa-2x" style="color: var(--danger);"></i>
+                <div class="label">Suhu</div>
+                <div class="value" id="val-suhu">--</div>
+                <span>Celsius</span>
             </div>
             
             <div class="card">
-                <i class="fa-solid fa-droplet" style="color: #3b82f6;"></i> Lembap
-                <div class="value" id="disp-humi">--</div>
-                <span class="status-badge" id="mode-status">Mode: --</span>
+                <i class="fa-solid fa-droplet fa-2x" style="color: var(--primary);"></i>
+                <div class="label">Kelembapan</div>
+                <div class="value" id="val-humi">--</div>
+                <span>RH %</span>
             </div>
 
             <div class="card">
-                <i class="fa-solid fa-gears"></i> Pengaturan Mode
+                <i class="fa-solid fa-sun fa-2x" style="color: var(--warning);"></i>
+                <div class="label">Intensitas Cahaya</div>
+                <div class="value" id="val-light">--</div>
+                <span>Lux (ADC)</span>
+            </div>
+
+            <div class="card">
+                <i class="fa-solid fa-sliders fa-2x"></i>
+                <div class="label">Mode Sistem</div>
                 <div class="btn-group">
-                    <button class="btn-auto" onclick="setMode('OTOMATIS')">MODE OTOMATIS</button>
-                    <button class="btn-manual" onclick="setMode('MANUAL')">MODE MANUAL</button>
+                    <button class="btn-auto" onclick="sendCmd('mode', 'OTOMATIS')">OTOMATIS (Sensor)</button>
+                    <button class="btn-manual" onclick="sendCmd('mode', 'MANUAL')">MANUAL (Tombol)</button>
                 </div>
             </div>
 
             <div class="card">
-                <i class="fa-solid fa-lightbulb"></i> Saklar Manual (Mode Manual)
+                <i class="fa-solid fa-lightbulb fa-2x"></i>
+                <div class="label">Lampu (Pemanas)</div>
                 <div class="btn-group">
-                    <button class="btn-on" onclick="setLampu(0)">NYALAKAN LAMPU</button>
-                    <button class="btn-off" onclick="setLampu(1)">MATIKAN LAMPU</button>
+                    <button class="btn-on" onclick="sendCmd('kontrol_manual', 0)">ON</button>
+                    <button class="btn-off" onclick="sendCmd('kontrol_manual', 1)">OFF</button>
+                </div>
+            </div>
+
+            <div class="card">
+                <i class="fa-solid fa-sync fa-2x"></i>
+                <div class="label">Motor (Rak Telur)</div>
+                <div class="btn-group">
+                    <button class="btn-on" onclick="sendCmd('kontrol_motor', 0)">PUTAR</button>
+                    <button class="btn-off" onclick="sendCmd('kontrol_motor', 1)">STOP</button>
                 </div>
             </div>
         </div>
@@ -65,17 +90,21 @@
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
 
-        // Baca Data
+        // Baca Data dari Firebase
         onValue(ref(db, 'Inkubator'), (snapshot) => {
-            const data = snapshot.val();
-            document.getElementById('disp-suhu').innerText = data.suhu + "°C";
-            document.getElementById('disp-humi').innerText = data.kelembapan + "%";
-            document.getElementById('mode-status').innerText = "Mode: " + data.mode;
+            const d = snapshot.val();
+            document.getElementById('val-suhu').innerText = d.suhu + "°";
+            document.getElementById('val-humi').innerText = d.kelembapan + "%";
+            document.getElementById('val-light').innerText = d.cahaya;
+            document.getElementById('mode-badge').innerText = "MODE: " + d.mode;
+            document.getElementById('mode-badge').style.background = d.mode === 'OTOMATIS' ? '#10b981' : '#f59e0b';
+            document.getElementById('mode-badge').style.color = 'white';
         });
 
-        // Kirim Perintah
-        window.setMode = (m) => { set(ref(db, 'Inkubator/mode'), m); };
-        window.setLampu = (s) => { set(ref(db, 'Inkubator/kontrol_manual'), s); };
+        // Fungsi Kirim Perintah
+        window.sendCmd = (path, val) => {
+            set(ref(db, 'Inkubator/' + path), val);
+        };
     </script>
 </body>
 </html>
