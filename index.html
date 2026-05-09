@@ -2,47 +2,74 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <title>Monitoring Inkubator Pintar</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Inkubator Pintar</title>
+    
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+
     <style>
-        body { font-family: sans-serif; text-align: center; background: #f4f4f4; }
-        .box { background: white; padding: 20px; margin: 20px auto; width: 80%; border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
-        .suhu { font-size: 48px; color: #e67e22; font-weight: bold; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f0f2f5; margin: 0; padding: 20px; text-align: center; }
+        .container { max-width: 900px; margin: auto; }
+        .card { background: white; border-radius: 15px; padding: 20px; margin-bottom: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        h1 { color: #2c3e50; margin-bottom: 10px; }
+        .data-grid { display: flex; justify-content: space-around; flex-wrap: wrap; }
+        .data-item { flex: 1; min-width: 200px; padding: 10px; }
+        .value { font-size: 3.5rem; font-weight: bold; color: #e67e22; }
+        .unit { font-size: 1.5rem; color: #7f8c8d; }
+        .label { display: block; margin-top: 5px; color: #34495e; font-weight: bold; font-size: 1.1rem; }
+        iframe { border: none; border-radius: 10px; width: 100%; height: 500px; background: white; }
+        .status { font-size: 0.9rem; color: #27ae60; margin-bottom: 20px; background: #e8f5e9; padding: 5px 15px; border-radius: 20px; display: inline-block; }
     </style>
 </head>
 <body>
 
-    <div class="box">
-        <h1>Monitoring Real-time (Firebase)</h1>
-        <div id="status-koneksi">Menghubungkan...</div>
-        <div class="suhu"><span id="temp">--</span>°C</div>
-        <p>Kelembapan: <span id="humi">--</span>%</p>
+<div class="container">
+    <div class="card">
+        <h1>Monitoring Real-Time</h1>
+        <div id="status" class="status">Menunggu Data dari ESP32...</div>
+        <div class="data-grid">
+            <div class="data-item">
+                <div class="value" id="temp">--</div>
+                <span class="unit">°C</span>
+                <span class="label">SUHU</span>
+            </div>
+            <div class="data-item">
+                <div class="value" id="humi">--</div>
+                <span class="unit">%</span>
+                <span class="label">KELEMBAPAN</span>
+            </div>
+        </div>
     </div>
 
-    <div class="box">
-        <h1>Riwayat Data & Grafik (Google Sheets)</h1>
-        <iframe src="<iframe src="https://docs.google.com/spreadsheets/d/e/2PACX-1vRl2kPMxGhIdPFxaPBzKgwgOIXrkVuTA2bmJ2Vr7WDOTdQvU2jfmVxXkP3x3KaOIsg1ySC652J0AuR_/pubhtml?widget=true&amp;headers=false"></iframe>" width="100%" height="500"></iframe>
+    <div class="card" style="padding: 10px;">
+        <h1>Riwayat Data & Grafik</h1>
+        <iframe src="https://docs.google.com/spreadsheets/d/e/2PACX-1vRl2kPMxGhIdPFxaPBzKgwgOIXrkVuTA2bmJ2Vr7WDOTdQvU2jfmVxXkP3x3KaOIsg1ySC652J0AuR_/pubhtml?widget=true&amp;headers=false"></iframe>
     </div>
+</div>
 
-    <script>
-        // MASUKKAN KONFIGURASI FIREBASE KAMU DI SINI
-        const firebaseConfig = {
-            databaseURL: "https://penetas-telur-21ecc-default-rtdb.asia-southeast1.firebasedatabase.app/"
-        };
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.database();
+<script>
+    // KONFIGURASI FIREBASE KAMU
+    const firebaseConfig = {
+        databaseURL: "https://penetas-telur-21ecc-default-rtdb.asia-southeast1.firebasedatabase.app/"
+    };
+    
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
 
-        // Ambil data Suhu
-        db.ref("Inkubator/suhu").on("value", (snapshot) => {
-            document.getElementById("temp").innerText = snapshot.val();
-            document.getElementById("status-koneksi").innerText = "Tersambung ke Sensor";
-        });
+    // AMBIL DATA DARI FIREBASE (Sesuaikan path dengan kodingan ESP32 kamu)
+    // Jika di ESP32 kamu kirim ke "/Inkubator/suhu"
+    db.ref("Inkubator/suhu").on("value", (snapshot) => {
+        const val = snapshot.val();
+        document.getElementById("temp").innerText = val !== null ? val : "--";
+        document.getElementById("status").innerText = "● Terhubung - Live Update";
+    });
 
-        // Ambil data Kelembapan
-        db.ref("Inkubator/kelembapan").on("value", (snapshot) => {
-            document.getElementById("humi").innerText = snapshot.val();
-        });
-    </script>
+    db.ref("Inkubator/kelembapan").on("value", (snapshot) => {
+        const val = snapshot.val();
+        document.getElementById("humi").innerText = val !== null ? val : "--";
+    });
+</script>
+
 </body>
 </html>
