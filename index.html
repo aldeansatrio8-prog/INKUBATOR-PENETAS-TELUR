@@ -2,89 +2,47 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Smart Incubator Pro</title>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <title>Monitoring Inkubator Pintar</title>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     <style>
-        :root { --bg: #f1f5f9; --card: #ffffff; --primary: #3b82f6; --danger: #ef4444; --success: #10b981; --warning: #f59e0b; }
-        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); margin: 0; padding: 20px; text-align: center; }
-        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; max-width: 1000px; margin: 20px auto; }
-        .card { background: var(--card); padding: 20px; border-radius: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
-        .value { font-size: 2rem; font-weight: bold; margin: 10px 0; }
-        .btn-group { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px; }
-        button { padding: 12px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; color: white; }
-        .btn-auto { background: #6366f1; grid-column: span 2; }
-        .btn-manual { background: var(--warning); grid-column: span 2; }
-        .btn-on { background: var(--success); }
-        .btn-off { background: var(--danger); }
-        .status-badge { display: inline-block; padding: 5px 15px; border-radius: 20px; color: white; margin-bottom: 20px; font-weight: bold; }
+        body { font-family: sans-serif; text-align: center; background: #f4f4f4; }
+        .box { background: white; padding: 20px; margin: 20px auto; width: 80%; border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+        .suhu { font-size: 48px; color: #e67e22; font-weight: bold; }
     </style>
 </head>
 <body>
-    <h1><i class="fa-solid fa-egg"></i> Panel Dashboard Inkubator</h1>
-    <div id="mode-badge" class="status-badge">Menghubungkan...</div>
 
-    <div class="grid">
-        <div class="card">
-            <i class="fa-solid fa-temperature-high fa-2x" style="color:var(--danger)"></i>
-            <div>Suhu</div><div class="value" id="v-suhu">--</div>
-        </div>
-        <div class="card">
-            <i class="fa-solid fa-droplet fa-2x" style="color:var(--primary)"></i>
-            <div>Lembap</div><div class="value" id="v-humi">--</div>
-        </div>
-        <div class="card">
-            <i class="fa-solid fa-lightbulb fa-2x" style="color:var(--warning)"></i>
-            <div>Cahaya</div><div class="value" id="v-light">--</div>
-        </div>
-
-        <div class="card">
-            <i class="fa-solid fa-gear fa-2x"></i>
-            <div>Mode Sistem</div>
-            <div class="btn-group">
-                <button class="btn-auto" onclick="cmd('mode', 'OTOMATIS')">OTOMATIS</button>
-                <button class="btn-manual" onclick="cmd('mode', 'MANUAL')">MANUAL</button>
-            </div>
-        </div>
-
-        <div class="card">
-            <i class="fa-solid fa-power-off fa-2x"></i>
-            <div>Lampu (Manual)</div>
-            <div class="btn-group">
-                <button class="btn-on" onclick="cmd('kontrol_manual', 0)">NYALA</button>
-                <button class="btn-off" onclick="cmd('kontrol_manual', 1)">MATI</button>
-            </div>
-        </div>
-
-        <div class="card">
-            <i class="fa-solid fa-arrows-rotate fa-2x"></i>
-            <div>Motor (Manual)</div>
-            <div class="btn-group">
-                <button class="btn-on" onclick="cmd('kontrol_motor', 0)">PUTAR</button>
-                <button class="btn-off" onclick="cmd('kontrol_motor', 1)">STOP</button>
-            </div>
-        </div>
+    <div class="box">
+        <h1>Monitoring Real-time (Firebase)</h1>
+        <div id="status-koneksi">Menghubungkan...</div>
+        <div class="suhu"><span id="temp">--</span>°C</div>
+        <p>Kelembapan: <span id="humi">--</span>%</p>
     </div>
 
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.17.1/firebase-app.js";
-        import { getDatabase, ref, onValue, set } from "https://www.gstatic.com/firebasejs/9.17.1/firebase-database.js";
+    <div class="box">
+        <h1>Riwayat Data & Grafik (Google Sheets)</h1>
+        <iframe src="<iframe src="https://docs.google.com/spreadsheets/d/e/2PACX-1vRl2kPMxGhIdPFxaPBzKgwgOIXrkVuTA2bmJ2Vr7WDOTdQvU2jfmVxXkP3x3KaOIsg1ySC652J0AuR_/pubhtml?widget=true&amp;headers=false"></iframe>" width="100%" height="500"></iframe>
+    </div>
 
-        const firebaseConfig = { databaseURL: "https://penetas-telur-21ecc-default-rtdb.asia-southeast1.firebasedatabase.app/" };
-        const app = initializeApp(firebaseConfig);
-        const db = getDatabase(app);
+    <script>
+        // MASUKKAN KONFIGURASI FIREBASE KAMU DI SINI
+        const firebaseConfig = {
+            databaseURL: "https://penetas-telur-21ecc-default-rtdb.asia-southeast1.firebasedatabase.app/"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
 
-        onValue(ref(db, 'Inkubator'), (s) => {
-            const d = s.val();
-            document.getElementById('v-suhu').innerText = d.suhu + "°C";
-            document.getElementById('v-humi').innerText = d.kelembapan + "%";
-            document.getElementById('v-light').innerText = d.cahaya;
-            const b = document.getElementById('mode-badge');
-            b.innerText = "MODE: " + d.mode;
-            b.style.background = d.mode === 'OTOMATIS' ? '#10b981' : '#f59e0b';
+        // Ambil data Suhu
+        db.ref("Inkubator/suhu").on("value", (snapshot) => {
+            document.getElementById("temp").innerText = snapshot.val();
+            document.getElementById("status-koneksi").innerText = "Tersambung ke Sensor";
         });
 
-        window.cmd = (p, v) => { set(ref(db, 'Inkubator/' + p), v); };
+        // Ambil data Kelembapan
+        db.ref("Inkubator/kelembapan").on("value", (snapshot) => {
+            document.getElementById("humi").innerText = snapshot.val();
+        });
     </script>
 </body>
 </html>
