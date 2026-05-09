@@ -3,77 +3,79 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard Inkubator Smart</title>
+    <title>Inkubator Smart - IoT Control</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
-        :root { --bg: #f0f2f5; --card: #ffffff; --primary: #2563eb; }
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg); margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; }
-        h1 { color: #1e293b; margin-bottom: 30px; }
-        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; width: 100%; max-width: 1000px; }
-        .card { background: var(--card); padding: 25px; border-radius: 20px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); text-align: center; transition: transform 0.3s; }
-        .card:hover { transform: translateY(-5px); }
-        .icon { font-size: 3rem; margin-bottom: 15px; }
-        .temp-color { color: #ef4444; }
-        .humi-color { color: #0ea5e9; }
-        .light-color { color: #f59e0b; }
-        .value { font-size: 2.5rem; font-weight: bold; color: #1e293b; margin: 10px 0; }
-        .unit { font-size: 1.2rem; color: #64748b; }
-        .label { font-size: 1.1rem; color: #64748b; font-weight: 500; }
+        :root { --bg: #f8fafc; --card: #ffffff; --primary: #3b82f6; --danger: #ef4444; --success: #10b981; }
+        body { font-family: 'Inter', sans-serif; background: var(--bg); margin: 0; padding: 20px; text-align: center; }
+        .container { max-width: 900px; margin: auto; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-top: 20px; }
+        .card { background: var(--card); padding: 20px; border-radius: 15px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
+        .value { font-size: 2rem; font-weight: bold; margin: 10px 0; color: #1e293b; }
+        .btn-group { display: flex; flex-direction: column; gap: 10px; margin-top: 15px; }
+        button { padding: 12px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; transition: 0.3s; }
+        .btn-auto { background: #6366f1; color: white; }
+        .btn-manual { background: #f59e0b; color: white; }
+        .btn-on { background: var(--success); color: white; }
+        .btn-off { background: var(--danger); color: white; }
+        button:hover { opacity: 0.8; transform: scale(1.02); }
+        .status-badge { padding: 5px 10px; border-radius: 20px; font-size: 0.8rem; background: #e2e8f0; color: #475569; }
     </style>
 </head>
 <body>
+    <div class="container">
+        <h1><i class="fa-solid fa-microchip"></i> Panel Kontrol Inkubator</h1>
+        
+        <div class="grid">
+            <div class="card">
+                <i class="fa-solid fa-thermometer-half" style="color: #ef4444;"></i> Suhu
+                <div class="value" id="disp-suhu">--</div>
+                <span class="status-badge">Real-time</span>
+            </div>
+            
+            <div class="card">
+                <i class="fa-solid fa-droplet" style="color: #3b82f6;"></i> Lembap
+                <div class="value" id="disp-humi">--</div>
+                <span class="status-badge" id="mode-status">Mode: --</span>
+            </div>
 
-    <h1><i class="fa-solid fa-egg"></i> Inkubator Smart Monitor</h1>
+            <div class="card">
+                <i class="fa-solid fa-gears"></i> Pengaturan Mode
+                <div class="btn-group">
+                    <button class="btn-auto" onclick="setMode('OTOMATIS')">MODE OTOMATIS</button>
+                    <button class="btn-manual" onclick="setMode('MANUAL')">MODE MANUAL</button>
+                </div>
+            </div>
 
-    <div class="grid">
-        <div class="card">
-            <div class="icon temp-color"><i class="fa-solid fa-temperature-high"></i></div>
-            <div class="label">Suhu</div>
-            <div class="value" id="suhu">--</div>
-            <div class="unit">°Celsius</div>
-        </div>
-
-        <div class="card">
-            <div class="icon humi-color"><i class="fa-solid fa-droplet"></i></div>
-            <div class="label">Kelembapan</div>
-            <div class="value" id="kelembapan">--</div>
-            <div class="unit">% RH</div>
-        </div>
-
-        <div class="card">
-            <div class="icon light-color"><i class="fa-solid fa-lightbulb"></i></div>
-            <div class="label">Intensitas Cahaya</div>
-            <div class="value" id="cahaya">--</div>
-            <div class="unit">ADC Value</div>
+            <div class="card">
+                <i class="fa-solid fa-lightbulb"></i> Saklar Manual (Mode Manual)
+                <div class="btn-group">
+                    <button class="btn-on" onclick="setLampu(0)">NYALAKAN LAMPU</button>
+                    <button class="btn-off" onclick="setLampu(1)">MATIKAN LAMPU</button>
+                </div>
+            </div>
         </div>
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/9.17.1/firebase-app.js";
-        import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/9.17.1/firebase-database.js";
+        import { getDatabase, ref, onValue, set } from "https://www.gstatic.com/firebasejs/9.17.1/firebase-database.js";
 
-        // --- KONFIGURASI FIREBASE ---
-        const firebaseConfig = {
-            databaseURL: "https://penetas-telur-21ecc-default-rtdb.asia-southeast1.firebasedatabase.app/"
-        };
-
+        const firebaseConfig = { databaseURL: "https://penetas-telur-21ecc-default-rtdb.asia-southeast1.firebasedatabase.app/" };
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
 
-        // Ambil Data Suhu
-        onValue(ref(db, 'Inkubator/suhu'), (snapshot) => {
-            document.getElementById('suhu').innerText = snapshot.val();
+        // Baca Data
+        onValue(ref(db, 'Inkubator'), (snapshot) => {
+            const data = snapshot.val();
+            document.getElementById('disp-suhu').innerText = data.suhu + "°C";
+            document.getElementById('disp-humi').innerText = data.kelembapan + "%";
+            document.getElementById('mode-status').innerText = "Mode: " + data.mode;
         });
 
-        // Ambil Data Kelembapan
-        onValue(ref(db, 'Inkubator/kelembapan'), (snapshot) => {
-            document.getElementById('kelembapan').innerText = snapshot.val();
-        });
-
-        // Ambil Data Cahaya
-        onValue(ref(db, 'Inkubator/cahaya'), (snapshot) => {
-            document.getElementById('cahaya').innerText = snapshot.val();
-        });
+        // Kirim Perintah
+        window.setMode = (m) => { set(ref(db, 'Inkubator/mode'), m); };
+        window.setLampu = (s) => { set(ref(db, 'Inkubator/kontrol_manual'), s); };
     </script>
 </body>
 </html>
