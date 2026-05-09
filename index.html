@@ -9,7 +9,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Rajdhani:wght@500;700&display=swap" rel="stylesheet">
     <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
     
-    <!-- Load Chart.js untuk Grafik Dashboard (Optional jika ingin grafik custom selain Sheets) -->
+    <!-- Load Chart.js untuk Grafik Real-time -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     
     <!-- Load Firebase SDK v8 -->
@@ -115,6 +115,12 @@
             100% { opacity: 1; }
         }
 
+        /* CHART STYLING */
+        .chart-container {
+            grid-column: span 2;
+            min-height: 300px;
+        }
+
         /* COUNTDOWN & STATUS */
         .countdown-box {
             background: rgba(0,0,0,0.3);
@@ -182,6 +188,12 @@
             <div id="temp-desc" style="color: #94a3b8;">Mendeteksi...</div>
         </div>
 
+        <!-- Card Grafik Real-time -->
+        <div class="card chart-container">
+            <div class="card-title">📉 Grafik Suhu Real-Time</div>
+            <canvas id="realtimeChart"></canvas>
+        </div>
+
         <!-- Card Kelembapan -->
         <div class="card">
             <div class="card-title">💧 Kelembapan</div>
@@ -209,9 +221,8 @@
         <div class="card sheets-container">
             <div class="card-title">📊 Visualisasi Data & Logging (Google Sheets)</div>
             <p style="font-size: 0.9rem; color: #94a3b8; margin-top: -10px; margin-bottom: 15px;">
-                Tabel di bawah ini mencakup riwayat sensor yang tercatat setiap 5 menit. Gunakan tab di bawah iframe untuk melihat grafik.
+                Tabel di bawah ini mencakup riwayat sensor yang tercatat setiap 5 menit. Gunakan tab di bawah iframe untuk melihat grafik historis.
             </p>
-            <!-- MASUKKAN IFRAME GOOGLE SHEETS KAMU DI SINI -->
             <iframe src="https://docs.google.com/spreadsheets/d/e/2PACX-1vRl2kPMxGhIdPFxaPBzKgwgOIXrkVuTA2bmJ2Vr7WDOTdQvU2jfmVxXkP3x3KaOIsg1ySC652J0AuR_/pubhtml?widget=true&amp;headers=false"></iframe>
         </div>
     </div>
@@ -230,12 +241,64 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
+    // --- INISIALISASI GRAFIK REAL-TIME ---
+    const ctx = document.getElementById('realtimeChart').getContext('2d');
+    const realtimeChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: [],
+            datasets: [{
+                label: 'Suhu (°C)',
+                data: [],
+                borderColor: '#38bdf8',
+                backgroundColor: 'rgba(56, 189, 248, 0.2)',
+                borderWidth: 3,
+                tension: 0.4,
+                fill: true,
+                pointRadius: 0
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                x: { display: false },
+                y: {
+                    grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                    ticks: { color: '#94a3b8' },
+                    suggestedMin: 30,
+                    suggestedMax: 45
+                }
+            },
+            plugins: {
+                legend: { display: false }
+            },
+            animation: { duration: 0 }
+        }
+    });
+
+    function updateChart(value) {
+        const now = new Date().toLocaleTimeString();
+        realtimeChart.data.labels.push(now);
+        realtimeChart.data.datasets[0].data.push(value);
+        
+        // Batasi data maksimal 20 titik agar tidak terlalu padat
+        if (realtimeChart.data.labels.length > 20) {
+            realtimeChart.data.labels.shift();
+            realtimeChart.data.datasets[0].data.shift();
+        }
+        realtimeChart.update();
+    }
+
     // --- PENGAMBILAN DATA REAL-TIME ---
     
     // 1. Logika Suhu & Visual Warna
     db.ref("Inkubator/suhu").on("value", (snapshot) => {
         const t = snapshot.val();
+        if (t === null) return;
+
         document.getElementById("val-temp").innerText = t;
+        updateChart(t); // Update grafik real-time
         
         const tempColor = document.getElementById("temp-color");
         const tempDesc = document.getElementById("temp-desc");
@@ -247,23 +310,25 @@
         if (t < 37) {
             tempColor.className = "value-display temp-cold";
             tempDesc.innerText = "STATUS: TERLALU DINGIN (PEMANAS AKTIF)";
+            realtimeChart.data.datasets[0].borderColor = '#60a5fa';
         } else if (t >= 37 && t <= 39) {
             tempColor.className = "value-display temp-normal";
             tempDesc.innerText = "STATUS: OPTIMAL";
+            realtimeChart.data.datasets[0].borderColor = '#22c55e';
         } else {
             tempColor.className = "value-display temp-hot";
             tempDesc.innerText = "PERINGATAN: OVERHEAT (KIPAS AKTIF)";
+            realtimeChart.data.datasets[0].borderColor = '#ef4444';
         }
     });
 
     // 2. Kelembapan
     db.ref("Inkubator/kelembapan").on("value", (snapshot) => {
-        document.getElementById("val-humi").innerText = snapshot.val();
+        const h = snapshot.val();
+        if (h !== null) document.getElementById("val-humi").innerText = h;
     });
 
-    // 3. Status Motor & Hitung Mundur (Logika Simulasi Timer)
-    // Di sini kita asumsikan ESP32 mengirimkan timestamp terakhir motor jalan
-    // Atau untuk sementara kita buat hitung mundur statis dari data Firebase
+    // 3. Status Motor
     db.ref("Inkubator/statusMotor").on("value", (snapshot) => {
         const status = snapshot.val();
         const motorLabel = document.getElementById("motor-status");
@@ -277,8 +342,8 @@
         }
     });
 
-    // Simulasi Hitung Mundur (Bisa dihubungkan ke data waktu dari ESP32)
-    let seconds = 10800; // Contoh 3 jam
+    // Simulasi Hitung Mundur
+    let seconds = 10800; 
     setInterval(() => {
         if (seconds > 0) seconds--;
         else seconds = 10800;
