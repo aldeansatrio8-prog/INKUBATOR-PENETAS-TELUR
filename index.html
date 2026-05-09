@@ -1,70 +1,65 @@
 <!DOCTYPE html>
-<html lang="id">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard Inkubator Pro</title>
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Rajdhani:wght@500;700&display=swap" rel="stylesheet">
+    <title>Inkubator Monitoring</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
-
     <style>
-        :root { --bg: #0f172a; --primary: #38bdf8; --card: rgba(30, 41, 59, 0.8); --text: #f1f5f9; }
-        body { font-family: 'Rajdhani', sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; }
-        .container { max-width: 1100px; margin: auto; }
-        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
-        .card { background: var(--card); border-radius: 15px; padding: 20px; border: 1px solid rgba(255,255,255,0.1); }
-        .value { font-size: 3rem; font-weight: bold; color: var(--primary); }
-        .btn-download { background: #22c55e; color: white; padding: 12px 20px; text-decoration: none; border-radius: 8px; display: inline-block; margin: 10px 0; font-weight: bold; }
-        iframe { width: 100%; height: 500px; border-radius: 10px; background: white; margin-top: 15px; }
-        canvas { max-height: 250px; }
+        body { background: #0f172a; color: white; font-family: sans-serif; text-align: center; }
+        .card { background: #1e293b; padding: 20px; border-radius: 15px; margin: 10px; display: inline-block; min-width: 200px; }
+        .val { font-size: 3rem; font-weight: bold; color: #38bdf8; }
+        .btn { background: #22c55e; color: white; padding: 15px; text-decoration: none; border-radius: 10px; display: inline-block; margin-top: 20px; }
+        #chart-container { width: 80%; margin: auto; background: #1e293b; padding: 20px; border-radius: 15px; }
     </style>
 </head>
 <body>
-
-<div class="container">
-    <h1 style="font-family: 'Orbitron'; text-align: center; color: var(--primary);">SMART INCUBATOR MONITOR</h1>
+    <h1>INKUBATOR REAL-TIME</h1>
     
-    <div class="grid">
-        <div class="card">
-            <h3>🌡️ Suhu & Kelembapan</h3>
-            <div>Suhu: <span id="val-temp" class="value">--</span> °C</div>
-            <div>Lembap: <span id="val-humi" class="value" style="color:#fbbf24">--</span> %</div>
-        </div>
-
-        <div class="card" style="grid-column: span 2;">
-            <h3>📈 Grafik Suhu Real-Time</h3>
-            <canvas id="realtimeChart"></canvas>
-        </div>
+    <div class="card">
+        <div>Suhu</div>
+        <div id="temp" class="val">--</div><div>°C</div>
+    </div>
+    
+    <div class="card">
+        <div>Kelembapan</div>
+        <div id="humi" class="val" style="color: #fbbf24;">--</div><div>%</div>
     </div>
 
-    <div class="card" style="margin-top:20px;">
-        <h3>📊 Riwayat Data (Google Sheets)</h3>
-        
-        <a id="downloadBtn" href="#" class="btn-download">📥 Download Data Excel (.xlsx)</a>
-        
-        <iframe src="https://docs.google.com/spreadsheets/d/e/2PACX-1vRl2kPMxGhIdPFxaPBzKgwgOIXrkVuTA2bmJ2Vr7WDOTdQvU2jfmVxXkP3x3KaOIsg1ySC652J0AuR_/pubhtml?widget=true&amp;headers=false"></iframe>
-    </div>
-</div>
+    <div id="chart-container"><canvas id="myChart"></canvas></div>
 
-<script>
-    // 1. Firebase Config
-    const config = { databaseURL: "https://penetas-telur-21ecc-default-rtdb.asia-southeast1.firebasedatabase.app/" };
-    firebase.initializeApp(config);
-    const db = firebase.database();
+    <a id="download" href="#" class="btn">📥 DOWNLOAD EXCEL</a>
 
-    // 2. Setup Download Link (Otomatis ambil ID dari link Sheets kamu)
-    const sheetID = "1vRl2kPMxGhIdPFxaPBzKgwgOIXrkVuTA2bmJ2Vr7WDOTdQvU2jfmVxXkP3x3KaOIsg1ySC652J0AuR_";
-    document.getElementById('downloadBtn').href = `https://docs.google.com/spreadsheets/d/${sheetID}/export?format=xlsx`;
+    <script>
+        const config = { databaseURL: "https://penetas-telur-21ecc-default-rtdb.asia-southeast1.firebasedatabase.app/" };
+        firebase.initializeApp(config);
+        const db = firebase.database();
 
-    // 3. Chart.js Init
-    const ctx = document.getElementById('realtimeChart').getContext('2d');
-    const chart = new Chart(ctx, {
-        type: 'line',
-        data: { labels: [], datasets: [{ label: 'Suhu (°C)', data: [], borderColor: '#38bdf8', tension: 0.4, fill: true, backgroundColor: 'rgba(56, 189, 248, 0.1)' }] },
-        options: { scales: { y: { suggestedMin: 25, suggestedMax: 40 } } }
-    });
+        // Download Excel Logic
+        const sID = "1vRl2kPMxGhIdPFxaPBzKgwgOIXrkVuTA2bmJ2Vr7WDOTdQvU2jfmVxXkP3x3KaOIsg1ySC652J0AuR_";
+        document.getElementById('download').href = `https://docs.google.com/spreadsheets/d/${sID}/export?format=xlsx`;
 
-    // 4. Listen Firebase (Path disesuaikan dengan kodingan ESP32)
-    db.ref("
+        // Chart Setup
+        const ctx = document.getElementById('myChart').getContext('2d');
+        const chart = new Chart(ctx, {
+            type: 'line',
+            data: { labels: [], datasets: [{ label: 'Suhu', data: [], borderColor: '#38bdf8', fill: true }] }
+        });
+
+        // Listen Firebase
+        db.ref("Inkubator/suhu").on("value", snap => {
+            const v = snap.val();
+            document.getElementById('temp').innerText = v;
+            const now = new Date().toLocaleTimeString();
+            chart.data.labels.push(now);
+            chart.data.datasets[0].data.push(v);
+            if(chart.data.labels.length > 10) { chart.data.labels.shift(); chart.data.datasets[0].data.shift(); }
+            chart.update();
+        });
+
+        db.ref("Inkubator/kelembapan").on("value", snap => {
+            document.getElementById('humi').innerText = snap.val();
+        });
+    </script>
+</body>
+</html>
