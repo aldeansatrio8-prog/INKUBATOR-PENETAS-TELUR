@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Inkubator Smart</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root { --bg: #f0f2f5; --card: #ffffff; --primary: #2563eb; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg); margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; }
+        h1 { color: #1e293b; margin-bottom: 30px; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; width: 100%; max-width: 1000px; }
+        .card { background: var(--card); padding: 25px; border-radius: 20px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); text-align: center; transition: transform 0.3s; }
+        .card:hover { transform: translateY(-5px); }
+        .icon { font-size: 3rem; margin-bottom: 15px; }
+        .temp-color { color: #ef4444; }
+        .humi-color { color: #0ea5e9; }
+        .light-color { color: #f59e0b; }
+        .value { font-size: 2.5rem; font-weight: bold; color: #1e293b; margin: 10px 0; }
+        .unit { font-size: 1.2rem; color: #64748b; }
+        .label { font-size: 1.1rem; color: #64748b; font-weight: 500; }
+    </style>
+</head>
+<body>
+
+    <h1><i class="fa-solid fa-egg"></i> Inkubator Smart Monitor</h1>
+
+    <div class="grid">
+        <div class="card">
+            <div class="icon temp-color"><i class="fa-solid fa-temperature-high"></i></div>
+            <div class="label">Suhu</div>
+            <div class="value" id="suhu">--</div>
+            <div class="unit">°Celsius</div>
+        </div>
+
+        <div class="card">
+            <div class="icon humi-color"><i class="fa-solid fa-droplet"></i></div>
+            <div class="label">Kelembapan</div>
+            <div class="value" id="kelembapan">--</div>
+            <div class="unit">% RH</div>
+        </div>
+
+        <div class="card">
+            <div class="icon light-color"><i class="fa-solid fa-lightbulb"></i></div>
+            <div class="label">Intensitas Cahaya</div>
+            <div class="value" id="cahaya">--</div>
+            <div class="unit">ADC Value</div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.17.1/firebase-app.js";
+        import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/9.17.1/firebase-database.js";
+
+        // --- KONFIGURASI FIREBASE ---
+        const firebaseConfig = {
+            databaseURL: "ISI_URL_DATABASE_FIREBASE_KAMU"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+
+        // Ambil Data Suhu
+        onValue(ref(db, 'Inkubator/suhu'), (snapshot) => {
+            document.getElementById('suhu').innerText = snapshot.val();
+        });
+
+        // Ambil Data Kelembapan
+        onValue(ref(db, 'Inkubator/kelembapan'), (snapshot) => {
+            document.getElementById('kelembapan').innerText = snapshot.val();
+        });
+
+        // Ambil Data Cahaya
+        onValue(ref(db, 'Inkubator/cahaya'), (snapshot) => {
+            document.getElementById('cahaya').innerText = snapshot.val();
+        });
+    </script>
+</body>
+</html>
