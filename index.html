@@ -532,6 +532,283 @@
   .tag-on  { color: var(--neon-green); background: rgba(0,255,136,0.1); border: 1px solid rgba(0,255,136,0.25); }
   .tag-off { color: var(--text-dim);   background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1); }
 
+  /* ===================== LOGGING CONTROL PANEL ===================== */
+  .logging-panel {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .logging-panel::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: var(--log-accent, var(--neon-green));
+    box-shadow: 0 0 12px var(--log-accent, var(--neon-green));
+    transition: background 0.4s, box-shadow 0.4s;
+  }
+
+  .logging-panel.stopped { --log-accent: var(--neon-red); }
+
+  .logging-panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-bottom: 1.25rem;
+  }
+
+  .logging-title {
+    font-family: var(--font-display);
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text-mid);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+  }
+
+  .logging-status-badge {
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    letter-spacing: 1.5px;
+    padding: 3px 10px;
+    border-radius: 20px;
+    border: 1px solid rgba(0,255,136,0.4);
+    color: var(--neon-green);
+    background: rgba(0,255,136,0.08);
+    transition: all 0.4s;
+  }
+
+  .logging-status-badge.stopped {
+    border-color: rgba(255,68,85,0.4);
+    color: var(--neon-red);
+    background: rgba(255,68,85,0.08);
+  }
+
+  .logging-controls {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+  }
+
+  .btn-log-start {
+    font-family: var(--font-display);
+    font-size: 0.85rem;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--bg-deep);
+    background: var(--neon-green);
+    border: none;
+    padding: 0.55rem 1.4rem;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.3s;
+    box-shadow: 0 0 16px rgba(0,255,136,0.3);
+  }
+
+  .btn-log-start:hover {
+    background: #33ffaa;
+    box-shadow: 0 0 28px rgba(0,255,136,0.5);
+    transform: translateY(-1px);
+  }
+
+  .btn-log-stop {
+    font-family: var(--font-display);
+    font-size: 0.85rem;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--bg-deep);
+    background: var(--neon-red);
+    border: none;
+    padding: 0.55rem 1.4rem;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.3s;
+    box-shadow: 0 0 16px rgba(255,68,85,0.3);
+  }
+
+  .btn-log-stop:hover {
+    background: #ff7788;
+    box-shadow: 0 0 28px rgba(255,68,85,0.5);
+    transform: translateY(-1px);
+  }
+
+  .btn-log-clear {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    letter-spacing: 1px;
+    color: var(--neon-amber);
+    background: rgba(255,170,0,0.08);
+    border: 1px solid rgba(255,170,0,0.3);
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.3s;
+  }
+
+  .btn-log-clear:hover {
+    background: rgba(255,170,0,0.15);
+    box-shadow: var(--glow-amber);
+  }
+
+  .logging-body {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 1rem;
+    align-items: end;
+  }
+
+  @media (max-width: 700px) { .logging-body { grid-template-columns: 1fr; } }
+
+  .log-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+  }
+
+  .log-field label {
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    color: var(--text-dim);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+
+  .log-interval-wrap {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .log-interval-input {
+    background: rgba(0,200,255,0.04);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--neon-cyan);
+    font-family: var(--font-mono);
+    font-size: 1rem;
+    font-weight: 700;
+    padding: 0.5rem 0.75rem;
+    outline: none;
+    transition: border-color 0.3s;
+    width: 90px;
+    text-align: center;
+  }
+
+  .log-interval-input:focus {
+    border-color: var(--neon-cyan);
+    box-shadow: 0 0 0 2px rgba(0,200,255,0.1);
+  }
+
+  .log-interval-unit {
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    color: var(--text-mid);
+  }
+
+  .log-interval-presets {
+    display: flex;
+    gap: 0.4rem;
+    flex-wrap: wrap;
+    margin-top: 0.4rem;
+  }
+
+  .preset-btn {
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    letter-spacing: 1px;
+    color: var(--text-dim);
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.1);
+    padding: 3px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .preset-btn:hover, .preset-btn.active {
+    color: var(--neon-cyan);
+    border-color: rgba(0,200,255,0.4);
+    background: rgba(0,200,255,0.08);
+  }
+
+  .log-stats-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+  }
+
+  .log-stat-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    color: var(--text-dim);
+    padding: 0.3rem 0;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+  }
+
+  .log-stat-row span:last-child {
+    color: var(--neon-cyan);
+    font-weight: 700;
+  }
+
+  .log-progress-wrap {
+    margin-top: 0.6rem;
+  }
+
+  .log-countdown {
+    font-family: var(--font-display);
+    font-size: 1.6rem;
+    font-weight: 800;
+    color: var(--neon-green);
+    text-shadow: 0 0 16px rgba(0,255,136,0.5);
+    transition: color 0.3s;
+    line-height: 1;
+  }
+
+  .log-countdown.stopped { color: var(--neon-red); text-shadow: 0 0 16px rgba(255,68,85,0.4); }
+  .log-countdown.writing { color: var(--neon-amber); text-shadow: 0 0 16px rgba(255,170,0,0.5); }
+
+  .log-countdown-label {
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    color: var(--text-dim);
+    letter-spacing: 2px;
+    margin-top: 0.25rem;
+  }
+
+  .log-bar-wrap {
+    margin-top: 0.75rem;
+    height: 4px;
+    background: rgba(255,255,255,0.06);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  .log-bar-fill {
+    height: 100%;
+    background: var(--neon-green);
+    box-shadow: 0 0 8px var(--neon-green);
+    border-radius: 2px;
+    transition: width 1s linear, background 0.3s;
+  }
+
+  .log-bar-fill.stopped { background: var(--neon-red); box-shadow: 0 0 8px var(--neon-red); }
+
   /* ===================== FIREBASE CONFIG PANEL ===================== */
   .config-panel {
     background: var(--bg-card);
@@ -798,6 +1075,85 @@
       <div class="chart-wrap">
         <canvas id="chartRelay" role="img" aria-label="Grafik distribusi status relay aktif">Data sedang dimuat...</canvas>
       </div>
+    </div>
+  </div>
+
+  <!-- LOGGING CONTROL -->
+  <div class="section-label">// KONTROL LOGGING</div>
+  <div class="logging-panel" id="logging-panel">
+    <div class="logging-panel-header">
+      <div class="logging-title">
+        📁 Data Logger
+        <span class="logging-status-badge" id="log-badge">● AKTIF</span>
+      </div>
+      <div class="logging-controls">
+        <button class="btn-log-start" id="btn-start" onclick="startLogging()" style="display:none">▶ START</button>
+        <button class="btn-log-stop"  id="btn-stop"  onclick="stopLogging()">■ STOP</button>
+        <button class="btn-log-clear" onclick="clearLog()">🗑 HAPUS LOG</button>
+      </div>
+    </div>
+
+    <div class="logging-body">
+
+      <!-- Kolom 1: Interval Setting -->
+      <div class="log-field">
+        <label>Interval Logging</label>
+        <div class="log-interval-wrap">
+          <input type="number" class="log-interval-input" id="log-interval-val" value="10" min="1" max="3600" onchange="ubahInterval()">
+          <select id="log-interval-unit" class="log-interval-input" style="width:80px;font-size:0.75rem" onchange="ubahInterval()">
+            <option value="1">detik</option>
+            <option value="60" selected>menit</option>
+            <option value="3600">jam</option>
+          </select>
+        </div>
+        <div class="log-interval-presets">
+          <button class="preset-btn" onclick="setPreset(30,1)">30 dtk</button>
+          <button class="preset-btn active" onclick="setPreset(10,60)">10 mnt</button>
+          <button class="preset-btn" onclick="setPreset(30,60)">30 mnt</button>
+          <button class="preset-btn" onclick="setPreset(1,3600)">1 jam</button>
+        </div>
+        <div style="font-family:var(--font-mono);font-size:0.68rem;color:var(--text-dim);margin-top:0.5rem" id="log-interval-info">
+          Logging setiap <span id="log-interval-display" style="color:var(--neon-cyan)">10 menit</span>
+        </div>
+      </div>
+
+      <!-- Kolom 2: Countdown & Progress -->
+      <div class="log-field">
+        <label>Logging Berikutnya</label>
+        <div class="log-countdown" id="log-countdown">00:10:00</div>
+        <div class="log-countdown-label" id="log-countdown-label">menuju pencatatan berikutnya</div>
+        <div class="log-bar-wrap">
+          <div class="log-bar-fill" id="log-bar" style="width:0%"></div>
+        </div>
+      </div>
+
+      <!-- Kolom 3: Statistik -->
+      <div class="log-field">
+        <label>Statistik Sesi</label>
+        <div class="log-stats-grid">
+          <div class="log-stat-row">
+            <span>Total dicatat</span>
+            <span id="stat-total">0 baris</span>
+          </div>
+          <div class="log-stat-row">
+            <span>Sesi dimulai</span>
+            <span id="stat-start">--:--:--</span>
+          </div>
+          <div class="log-stat-row">
+            <span>Terakhir catat</span>
+            <span id="stat-last">-</span>
+          </div>
+          <div class="log-stat-row">
+            <span>Est. ukuran</span>
+            <span id="stat-size">0 KB</span>
+          </div>
+          <div class="log-stat-row">
+            <span>Status</span>
+            <span id="stat-status" style="color:var(--neon-green)">LOGGING</span>
+          </div>
+        </div>
+      </div>
+
     </div>
   </div>
 
@@ -1292,11 +1648,209 @@ function runDemoMode() {
 
 // ======================== AUTO-CONNECT ON LOAD ========================
 window.addEventListener('load', () => {
-  // Langsung konek Firebase dengan kredensial yang sudah diisi
-  setTimeout(() => {
-    connectFirebase();
-  }, 800);
+  setTimeout(() => { connectFirebase(); }, 800);
+  initLogging();
 });
+
+// ======================== LOGGING CONTROL ========================
+let loggingAktif    = true;
+let logIntervalMs   = 10 * 60 * 1000;   // Default: 10 menit dalam ms
+let logTimer        = null;
+let logCountdown    = null;
+let logSisaMs       = logIntervalMs;
+let logTotalBaris   = 0;
+let logSesiMulai    = null;
+let logTerakhir     = null;
+let logIntervalStart= null;
+
+function initLogging() {
+  logSesiMulai = new Date();
+  document.getElementById('stat-start').textContent = formatWaktu(logSesiMulai);
+  mulaiTimer();
+}
+
+function startLogging() {
+  if (loggingAktif) return;
+  loggingAktif = true;
+  logSisaMs    = logIntervalMs;  // Reset countdown ke interval penuh
+
+  // UI
+  document.getElementById('btn-start').style.display  = 'none';
+  document.getElementById('btn-stop').style.display   = '';
+  document.getElementById('log-badge').textContent    = '● AKTIF';
+  document.getElementById('log-badge').className      = 'logging-status-badge';
+  document.getElementById('logging-panel').classList.remove('stopped');
+  document.getElementById('log-countdown').classList.remove('stopped');
+  document.getElementById('log-bar').classList.remove('stopped');
+  document.getElementById('stat-status').textContent  = 'LOGGING';
+  document.getElementById('stat-status').style.color  = 'var(--neon-green)';
+
+  mulaiTimer();
+  console.log('[LOG] Logging dimulai.');
+}
+
+function stopLogging() {
+  if (!loggingAktif) return;
+  loggingAktif = false;
+
+  // Hentikan timer
+  if (logTimer)    { clearInterval(logTimer);    logTimer = null; }
+  if (logCountdown){ clearInterval(logCountdown); logCountdown = null; }
+
+  // UI
+  document.getElementById('btn-start').style.display  = '';
+  document.getElementById('btn-stop').style.display   = 'none';
+  document.getElementById('log-badge').textContent    = '■ BERHENTI';
+  document.getElementById('log-badge').className      = 'logging-status-badge stopped';
+  document.getElementById('logging-panel').classList.add('stopped');
+  document.getElementById('log-countdown').classList.add('stopped');
+  document.getElementById('log-countdown').textContent = 'PAUSE';
+  document.getElementById('log-bar').classList.add('stopped');
+  document.getElementById('stat-status').textContent  = 'BERHENTI';
+  document.getElementById('stat-status').style.color  = 'var(--neon-red)';
+  console.log('[LOG] Logging dihentikan.');
+}
+
+function clearLog() {
+  if (!confirm('Hapus semua log di halaman ini? (Data di Firebase & SD Card tidak terpengaruh)')) return;
+  logBuffer.length = 0;
+  logTotalBaris    = 0;
+  logTerakhir      = null;
+  logSesiMulai     = new Date();
+
+  document.getElementById('log-tbody').innerHTML =
+    '<tr><td colspan="7" style="text-align:center;color:var(--text-dim);padding:2rem;">Log dikosongkan.</td></tr>';
+  document.getElementById('stat-total').textContent = '0 baris';
+  document.getElementById('stat-last').textContent  = '-';
+  document.getElementById('stat-size').textContent  = '0 KB';
+  document.getElementById('stat-start').textContent = formatWaktu(logSesiMulai);
+  historyData.length = 0;
+  updateCharts();
+}
+
+function mulaiTimer() {
+  if (logTimer)    { clearInterval(logTimer);    logTimer = null; }
+  if (logCountdown){ clearInterval(logCountdown); logCountdown = null; }
+
+  logIntervalStart = Date.now();
+  logSisaMs        = logIntervalMs;
+
+  // Timer eksekusi logging (setiap N ms)
+  logTimer = setInterval(() => {
+    if (!loggingAktif) return;
+    eksekusiLog();
+    logIntervalStart = Date.now();
+    logSisaMs        = logIntervalMs;
+  }, logIntervalMs);
+
+  // Countdown per detik
+  logCountdown = setInterval(() => {
+    if (!loggingAktif) return;
+    const elapsed = Date.now() - logIntervalStart;
+    logSisaMs     = Math.max(0, logIntervalMs - elapsed);
+    updateCountdownUI(logSisaMs, logIntervalMs);
+  }, 1000);
+}
+
+function eksekusiLog() {
+  if (!loggingAktif || logBuffer.length === 0) return;
+
+  // Data terbaru dari buffer
+  const data = logBuffer[0];
+  logTotalBaris++;
+  logTerakhir = new Date();
+
+  // Update statistik
+  document.getElementById('stat-total').textContent = logTotalBaris + ' baris';
+  document.getElementById('stat-last').textContent  = formatWaktu(logTerakhir);
+
+  // Estimasi ukuran: ~55 byte per baris
+  const estimasiKB = ((logTotalBaris * 55) / 1024).toFixed(1);
+  document.getElementById('stat-size').textContent  = estimasiKB + ' KB';
+
+  // Flash animasi countdown
+  const cd = document.getElementById('log-countdown');
+  cd.classList.add('writing');
+  cd.textContent = 'MENULIS...';
+  setTimeout(() => {
+    cd.classList.remove('writing');
+  }, 800);
+
+  console.log(`[LOG] Baris #${logTotalBaris} dicatat: ${data.timestamp || '-'}`);
+}
+
+function updateCountdownUI(sisaMs, totalMs) {
+  const cd    = document.getElementById('log-countdown');
+  const bar   = document.getElementById('log-bar');
+  const label = document.getElementById('log-countdown-label');
+
+  if (!loggingAktif) return;
+
+  // Format waktu
+  const jam  = Math.floor(sisaMs / 3600000);
+  const mnt  = Math.floor((sisaMs % 3600000) / 60000);
+  const dtk  = Math.floor((sisaMs % 60000) / 1000);
+
+  let display = '';
+  if (jam > 0)  display = `${String(jam).padStart(2,'0')}:${String(mnt).padStart(2,'0')}:${String(dtk).padStart(2,'0')}`;
+  else           display = `${String(mnt).padStart(2,'0')}:${String(dtk).padStart(2,'0')}`;
+
+  if (!cd.classList.contains('writing')) {
+    cd.textContent = display;
+  }
+
+  // Progress bar: penuh di awal, kosong saat mau tulis
+  const pct = (sisaMs / totalMs) * 100;
+  bar.style.width = pct + '%';
+
+  // Warning saat 10 detik terakhir
+  if (sisaMs <= 10000 && sisaMs > 0) {
+    cd.style.color = 'var(--neon-amber)';
+    cd.style.textShadow = '0 0 16px rgba(255,170,0,0.6)';
+    label.textContent = '⚠ Segera mencatat data...';
+  } else {
+    cd.style.color = 'var(--neon-green)';
+    cd.style.textShadow = '0 0 16px rgba(0,255,136,0.5)';
+    label.textContent = 'menuju pencatatan berikutnya';
+  }
+}
+
+function ubahInterval() {
+  const val  = parseFloat(document.getElementById('log-interval-val').value) || 10;
+  const unit = parseFloat(document.getElementById('log-interval-unit').value);
+  logIntervalMs = val * unit * 1000;
+
+  // Update display
+  let teks = '';
+  if (unit === 1)    teks = `${val} detik`;
+  if (unit === 60)   teks = `${val} menit`;
+  if (unit === 3600) teks = `${val} jam`;
+  document.getElementById('log-interval-display').textContent = teks;
+
+  // Restart timer dengan interval baru
+  if (loggingAktif) {
+    mulaiTimer();
+    console.log(`[LOG] Interval diubah: ${teks}`);
+  }
+
+  // Update preset highlight
+  document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+}
+
+function setPreset(val, unit) {
+  document.getElementById('log-interval-val').value  = val;
+  document.getElementById('log-interval-unit').value = unit;
+  ubahInterval();
+
+  // Highlight preset aktif
+  document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+  event.target.classList.add('active');
+}
+
+function formatWaktu(d) {
+  if (!d) return '-';
+  return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}:${String(d.getSeconds()).padStart(2,'0')}`;
+}
 </script>
 </body>
 </html>
