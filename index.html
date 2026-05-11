@@ -1,80 +1,731 @@
 <!DOCTYPE html>
-<html>
+<html lang="id">
 <head>
-    <title>Inkubator Pro v4.0</title>
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
-    <style>
-        body { background: #050a0e; color: #00f2ff; font-family: sans-serif; text-align: center; }
-        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; padding: 20px; }
-        .card { background: #0d1821; border: 1px solid #00f2ff; padding: 20px; border-radius: 10px; }
-        .value { font-size: 2.5em; font-weight: bold; }
-        #chart-wrap { background: #0d1821; margin: 20px; padding: 20px; border-radius: 10px; height: 300px; }
-        button { background: none; border: 1px solid red; color: red; padding: 10px; cursor: pointer; border-radius: 5px; }
-        button:hover { background: red; color: white; }
-    </style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>EGG INCUBATOR — NEXUS CONTROL</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@300;400;500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet" />
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg-root:    #050a0e;
+    --bg-panel:   #0d1821;
+    --bg-panel2:  #0a1520;
+    --cyan:       #00f2ff;
+    --cyan-dim:   #00c8d4;
+    --cyan-glow:  rgba(0,242,255,0.18);
+    --cyan-glow2: rgba(0,242,255,0.08);
+    --red:        #ff2d55;
+    --red-glow:   rgba(255,45,85,0.25);
+    --amber:      #ffb800;
+    --amber-glow: rgba(255,184,0,0.18);
+    --green:      #00ff9d;
+    --green-glow: rgba(0,255,157,0.18);
+    --text-primary:   #e0f7fa;
+    --text-secondary: #7ab8c8;
+    --text-dim:       #3a6070;
+    --border:         rgba(0,242,255,0.12);
+    --border-bright:  rgba(0,242,255,0.35);
+    --font-main:  'Rajdhani', sans-serif;
+    --font-mono:  'Share Tech Mono', monospace;
+    --radius: 6px;
+    --t: all 0.25s ease;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg-root);
+    color: var(--text-primary);
+    font-family: var(--font-main);
+    min-height: 100vh;
+    overflow-x: hidden;
+    background-image:
+      radial-gradient(ellipse 80% 40% at 50% -10%, rgba(0,242,255,0.07) 0%, transparent 70%),
+      linear-gradient(180deg, #050a0e 0%, #030608 100%);
+  }
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.07) 2px, rgba(0,0,0,0.07) 4px);
+    pointer-events: none; z-index: 9999;
+  }
+
+  /* ── HEADER ── */
+  header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 28px;
+    border-bottom: 1px solid var(--border);
+    background: rgba(13,24,33,0.95);
+    backdrop-filter: blur(10px);
+    position: sticky; top: 0; z-index: 100;
+    flex-wrap: wrap; gap: 10px;
+  }
+  .header-brand { display: flex; align-items: center; gap: 14px; }
+  .brand-icon {
+    width: 42px; height: 42px; border: 1.5px solid var(--cyan); border-radius: 50%;
+    display: flex; align-items: center; justify-content: center; font-size: 20px;
+    box-shadow: 0 0 18px var(--cyan-glow), inset 0 0 12px var(--cyan-glow2);
+    animation: iconPulse 3s ease-in-out infinite;
+  }
+  @keyframes iconPulse {
+    0%,100% { box-shadow: 0 0 18px var(--cyan-glow); }
+    50%      { box-shadow: 0 0 32px rgba(0,242,255,0.35); }
+  }
+  .brand-text h1 { font-size: 1.4rem; font-weight: 700; letter-spacing: 4px; color: var(--cyan); text-shadow: 0 0 20px var(--cyan-glow); }
+  .brand-text p  { font-size: 0.67rem; color: var(--text-dim); letter-spacing: 3px; font-family: var(--font-mono); margin-top: 2px; }
+  .header-meta   { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+
+  .status-badge {
+    display: flex; align-items: center; gap: 8px;
+    padding: 6px 14px; border: 1px solid var(--border-bright); border-radius: 3px;
+    font-family: var(--font-mono); font-size: 0.72rem; letter-spacing: 2px;
+    background: var(--cyan-glow2); color: var(--cyan); text-transform: uppercase;
+    transition: var(--t);
+  }
+  .status-badge.critical { border-color: var(--red); background: var(--red-glow); color: var(--red); animation: critPulse 1s ease-in-out infinite; }
+  .status-badge.warning  { border-color: var(--amber); background: var(--amber-glow); color: var(--amber); }
+  @keyframes critPulse { 0%,100%{opacity:1} 50%{opacity:0.55} }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--cyan); box-shadow: 0 0 8px var(--cyan); animation: dotBlink 2s ease-in-out infinite; }
+  .dot.critical { background: var(--red); box-shadow: 0 0 8px var(--red); }
+  .dot.warning  { background: var(--amber); box-shadow: 0 0 8px var(--amber); }
+  @keyframes dotBlink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+  #clock { font-family: var(--font-mono); font-size: 0.78rem; color: var(--text-secondary); letter-spacing: 2px; }
+
+  /* ── STALE BANNER ── */
+  #stale-alert {
+    display: none; align-items: center; gap: 10px;
+    padding: 10px 28px; background: var(--red-glow); border-bottom: 1px solid var(--red);
+    color: var(--red); font-family: var(--font-mono); font-size: 0.75rem; letter-spacing: 2px;
+    animation: critPulse 1.5s ease-in-out infinite;
+  }
+  #stale-alert.show { display: flex; }
+
+  /* ── MAIN ── */
+  main { padding: 24px 28px 40px; display: flex; flex-direction: column; gap: 24px; max-width: 1600px; margin: 0 auto; }
+
+  .section-label {
+    font-size: 0.67rem; letter-spacing: 4px; color: var(--text-dim);
+    text-transform: uppercase; font-family: var(--font-mono);
+    display: flex; align-items: center; gap: 10px; margin-bottom: 14px;
+  }
+  .section-label::after { content:''; flex:1; height:1px; background: var(--border); }
+
+  /* ── SENSOR CARDS ── */
+  .sensor-row { display: grid; grid-template-columns: repeat(3,1fr); gap: 16px; }
+  @media(max-width:768px){ .sensor-row { grid-template-columns:1fr; } }
+
+  .sensor-card {
+    background: var(--bg-panel); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 22px 20px 18px; position: relative; overflow: hidden;
+    transition: var(--t); animation: fadeUp 0.5s ease both;
+  }
+  .sensor-card::before {
+    content:''; position:absolute; top:0; left:0; right:0; height:2px;
+    background: linear-gradient(90deg, transparent, var(--cyan), transparent); opacity:0.6;
+  }
+  .sensor-card.alarm {
+    border-color: var(--red); animation: alarmGlow 1.5s ease-in-out infinite;
+  }
+  .sensor-card.alarm::before { background: linear-gradient(90deg, transparent, var(--red), transparent); opacity:1; }
+  @keyframes alarmGlow {
+    0%,100%{ box-shadow: 0 0 24px var(--red-glow); }
+    50%     { box-shadow: 0 0 44px rgba(255,45,85,0.45); }
+  }
+  .card-icon   { font-size: 1.4rem; display:block; margin-bottom:6px; }
+  .card-label  { font-size:0.65rem; letter-spacing:3px; color:var(--text-secondary); text-transform:uppercase; font-family:var(--font-mono); }
+  .card-value  { font-size:3.2rem; font-weight:700; line-height:1; margin:8px 0 4px; color:var(--cyan); text-shadow:0 0 20px var(--cyan-glow); font-family:var(--font-mono); transition:color 0.3s; }
+  .sensor-card.alarm .card-value { color:var(--red); text-shadow:0 0 20px var(--red-glow); }
+  .card-unit   { font-size:1.1rem; font-weight:400; color:var(--text-dim); }
+  .card-range  { font-size:0.65rem; letter-spacing:1px; color:var(--text-dim); font-family:var(--font-mono); margin-top:8px; display:flex; justify-content:space-between; }
+  .card-range span { color:var(--text-secondary); }
+  .card-bar    { height:3px; background:var(--bg-root); border-radius:2px; margin-top:10px; overflow:hidden; }
+  .card-bar-fill { height:100%; border-radius:2px; background:linear-gradient(90deg, var(--cyan-dim), var(--cyan)); box-shadow:0 0 8px var(--cyan-glow); transition:width 0.6s ease; }
+  .alarm-tag   { display:none; font-size:0.67rem; letter-spacing:2px; color:var(--red); margin-top:8px; font-family:var(--font-mono); }
+
+  /* ── ACTUATORS ── */
+  .actuator-row { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; }
+  @media(max-width:640px){ .actuator-row { grid-template-columns:1fr 1fr; } }
+  @media(max-width:420px){ .actuator-row { grid-template-columns:1fr; } }
+
+  .actuator-card {
+    background:var(--bg-panel); border:1px solid var(--border); border-radius:var(--radius);
+    padding:16px 18px; display:flex; align-items:center; gap:14px; transition:var(--t);
+    animation: fadeUp 0.5s ease both;
+  }
+  .actuator-card.active { border-color:rgba(0,255,157,0.35); background:rgba(0,255,157,0.03); box-shadow:0 0 16px rgba(0,255,157,0.1); }
+  .actuator-icon {
+    width:44px; height:44px; border-radius:50%; border:1.5px solid var(--border);
+    display:flex; align-items:center; justify-content:center; font-size:1.3rem;
+    background:var(--bg-root); transition:var(--t); flex-shrink:0;
+  }
+  .actuator-card.active .actuator-icon { border-color:var(--green); box-shadow:0 0 14px var(--green-glow); }
+  .actuator-info { flex:1; min-width:0; }
+  .actuator-name { font-size:0.75rem; letter-spacing:2px; text-transform:uppercase; color:var(--text-secondary); }
+  .actuator-status { font-size:0.88rem; font-weight:700; letter-spacing:3px; text-transform:uppercase; font-family:var(--font-mono); color:var(--text-dim); transition:var(--t); }
+  .actuator-card.active .actuator-status { color:var(--green); text-shadow:0 0 10px var(--green-glow); }
+  .led { width:10px; height:10px; border-radius:50%; background:var(--text-dim); flex-shrink:0; transition:var(--t); }
+  .led.on { background:var(--green); box-shadow:0 0 10px var(--green); animation:ledBlink 1.8s ease-in-out infinite; }
+  @keyframes ledBlink { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+  /* ── PANEL ── */
+  .lower-row { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+  @media(max-width:900px){ .lower-row { grid-template-columns:1fr; } }
+
+  .panel { background:var(--bg-panel); border:1px solid var(--border); border-radius:var(--radius); overflow:hidden; animation:fadeUp 0.6s ease both; }
+  .panel-header { padding:14px 18px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; }
+  .panel-title  { font-size:0.72rem; letter-spacing:3px; text-transform:uppercase; color:var(--text-secondary); font-family:var(--font-mono); display:flex; align-items:center; gap:8px; }
+  .panel-title .accent { color:var(--cyan); }
+  .panel-body   { padding:18px; }
+  .chart-wrap   { position:relative; height:240px; }
+
+  /* ── TABLE ── */
+  .table-wrap { overflow-y:auto; max-height:280px; }
+  .table-wrap::-webkit-scrollbar { width:4px; }
+  .table-wrap::-webkit-scrollbar-track { background:var(--bg-root); }
+  .table-wrap::-webkit-scrollbar-thumb { background:var(--cyan-dim); border-radius:2px; }
+  table { width:100%; border-collapse:collapse; font-family:var(--font-mono); }
+  thead th { font-size:0.6rem; letter-spacing:2px; text-transform:uppercase; color:var(--text-dim); padding:8px 10px; text-align:left; border-bottom:1px solid var(--border); position:sticky; top:0; background:var(--bg-panel2); z-index:1; }
+  tbody tr { border-bottom:1px solid rgba(0,242,255,0.04); transition:background 0.2s; }
+  tbody tr:hover { background:var(--cyan-glow2); }
+  tbody td { font-size:0.72rem; padding:7px 10px; color:var(--text-secondary); }
+  tbody td.tc { color:var(--cyan); }
+  tbody td.th { color:var(--amber); }
+  tbody tr:first-child td { color:var(--text-primary); }
+  tbody tr:first-child td.tc { color:var(--cyan); text-shadow:0 0 8px var(--cyan-glow); }
+
+  /* ── SYNC BAR ── */
+  .sync-bar {
+    display:flex; align-items:center; gap:16px;
+    padding:12px 28px; border-top:1px solid var(--border);
+    background:var(--bg-panel2); flex-wrap:wrap; gap:12px;
+  }
+  .sync-item { display:flex; align-items:center; gap:8px; font-family:var(--font-mono); font-size:0.67rem; letter-spacing:2px; text-transform:uppercase; color:var(--text-dim); }
+  .sync-item .lbl { color:var(--text-secondary); margin-right:2px; }
+  #sync-led { width:8px; height:8px; border-radius:50%; background:var(--text-dim); transition:var(--t); }
+  #sync-led.ok  { background:var(--green); box-shadow:0 0 8px var(--green); animation:ledBlink 2s ease-in-out infinite; }
+  #sync-led.err { background:var(--red);   box-shadow:0 0 8px var(--red); }
+  .sync-spacer { flex:1; }
+
+  /* ── BUTTONS ── */
+  .btn {
+    padding:8px 18px; border:1px solid var(--cyan); border-radius:3px;
+    background:transparent; color:var(--cyan); font-family:var(--font-main);
+    font-weight:600; font-size:0.78rem; letter-spacing:2px; text-transform:uppercase;
+    cursor:pointer; transition:var(--t); position:relative; overflow:hidden;
+  }
+  .btn::before { content:''; position:absolute; inset:0; background:var(--cyan); transform:translateX(-100%); transition:transform 0.2s ease; opacity:0.1; }
+  .btn:hover::before { transform:translateX(0); }
+  .btn:hover { box-shadow:0 0 16px var(--cyan-glow); }
+  .btn.amber { border-color:var(--amber); color:var(--amber); }
+  .btn.amber::before { background:var(--amber); }
+  .btn.amber:hover { box-shadow:0 0 16px var(--amber-glow); }
+  .btn.danger { border-color:var(--red); color:var(--red); }
+  .btn.danger::before { background:var(--red); }
+  .btn.green  { border-color:var(--green); color:var(--green); }
+  .btn.green::before { background:var(--green); }
+
+  /* ── TOAST ── */
+  #toast {
+    position:fixed; bottom:24px; right:24px;
+    padding:12px 20px; background:var(--bg-panel); border:1px solid var(--cyan);
+    border-radius:var(--radius); font-family:var(--font-mono); font-size:0.75rem;
+    color:var(--cyan); letter-spacing:2px; box-shadow:0 0 24px var(--cyan-glow);
+    z-index:9000; transform:translateY(80px); opacity:0; transition:all 0.3s ease;
+    pointer-events:none; max-width:340px;
+  }
+  #toast.show { transform:translateY(0); opacity:1; }
+  #toast.err  { border-color:var(--red); color:var(--red); box-shadow:0 0 24px var(--red-glow); }
+
+  @keyframes fadeUp { from{opacity:0;transform:translateY(14px)} to{opacity:1;transform:translateY(0)} }
+
+  .corner { position:absolute; width:14px; height:14px; border-color:var(--cyan); border-style:solid; opacity:0.4; }
+  .corner.tl { top:0;left:0; border-width:1.5px 0 0 1.5px; }
+  .corner.tr { top:0;right:0; border-width:1.5px 1.5px 0 0; }
+  .corner.bl { bottom:0;left:0; border-width:0 0 1.5px 1.5px; }
+  .corner.br { bottom:0;right:0; border-width:0 1.5px 1.5px 0; }
+
+  @media(max-width:600px){
+    header { padding:12px 16px; }
+    main   { padding:16px 16px 32px; }
+    .card-value { font-size:2.4rem; }
+    .sync-bar   { padding:10px 16px; }
+  }
+</style>
 </head>
 <body>
-    <h1>INCUBATOR MONITORING</h1>
-    <p id="last-update">Menghubungkan...</p>
 
-    <div class="grid">
-        <div class="card"><h3>SUHU</h3><div class="value" id="t">0</div></div>
-        <div class="card"><h3>HUMI</h3><div class="value" id="h">0</div></div>
-        <div class="card"><h3>HARI</h3><div class="value" id="day">0</div></div>
+<!-- HEADER -->
+<header>
+  <div class="header-brand">
+    <div class="brand-icon">🥚</div>
+    <div class="brand-text">
+      <h1>EGG NEXUS</h1>
+      <p>Smart Incubator · inkubator--v1 · asia-se1</p>
+    </div>
+  </div>
+  <div class="header-meta">
+    <div id="status-badge" class="status-badge"><div class="dot" id="status-dot"></div><span id="status-text">STANDBY</span></div>
+    <div id="clock"></div>
+  </div>
+</header>
+
+<!-- STALE ALERT -->
+<div id="stale-alert">
+  ⚠ DATA STREAM STALE — ESP32 MUNGKIN OFFLINE &nbsp;|&nbsp; UPDATE TERAKHIR: <span id="stale-time">—</span>
+</div>
+
+<main>
+  <!-- SENSOR CARDS -->
+  <div>
+    <div class="section-label">◈ LIVE SENSOR DATA</div>
+    <div class="sensor-row">
+
+      <!-- TEMPERATURE -->
+      <div class="sensor-card" id="card-temp" style="position:relative">
+        <div class="corner tl"></div><div class="corner tr"></div>
+        <div class="corner bl"></div><div class="corner br"></div>
+        <span class="card-icon">🌡️</span>
+        <div class="card-label">Temperature</div>
+        <div class="card-value" id="val-temp">--<span class="card-unit">°C</span></div>
+        <div class="card-range">SAFE RANGE <span>37.5 — 38.5 °C</span></div>
+        <div class="card-bar"><div class="card-bar-fill" id="bar-temp" style="width:0%"></div></div>
+        <div class="alarm-tag" id="alarm-tag">⚠ OUT OF RANGE</div>
+      </div>
+
+      <!-- HUMIDITY -->
+      <div class="sensor-card" id="card-hum">
+        <span class="card-icon">💧</span>
+        <div class="card-label">Humidity</div>
+        <div class="card-value" id="val-hum" style="color:var(--amber);text-shadow:0 0 20px var(--amber-glow)">--<span class="card-unit">%</span></div>
+        <div class="card-range">TARGET RANGE <span>55 — 65 %</span></div>
+        <div class="card-bar"><div class="card-bar-fill" id="bar-hum" style="width:0%;background:linear-gradient(90deg,#c8880a,var(--amber));box-shadow:0 0 8px var(--amber-glow)"></div></div>
+      </div>
+
+      <!-- LDR -->
+      <div class="sensor-card" id="card-ldr">
+        <span class="card-icon">☀️</span>
+        <div class="card-label">Light Intensity (LDR)</div>
+        <div class="card-value" id="val-ldr" style="color:#c084fc;text-shadow:0 0 20px rgba(192,132,252,0.3);font-size:2.4rem">--<span class="card-unit" style="font-size:1rem"> ADC</span></div>
+        <div class="card-range">ADC 12-BIT (0–4095) <span id="ldr-pct">—</span></div>
+        <div class="card-bar"><div class="card-bar-fill" id="bar-ldr" style="width:0%;background:linear-gradient(90deg,#7c3aed,#c084fc);box-shadow:0 0 8px rgba(192,132,252,0.3)"></div></div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ACTUATORS -->
+  <div>
+    <div class="section-label">◈ ACTUATOR STATUS</div>
+    <div class="actuator-row">
+      <div class="actuator-card" id="act-lamp">
+        <div class="actuator-icon">💡</div>
+        <div class="actuator-info">
+          <div class="actuator-name">Lamp / Heater</div>
+          <div class="actuator-status" id="st-lamp">STANDBY</div>
+        </div>
+        <div class="led" id="led-lamp"></div>
+      </div>
+      <div class="actuator-card" id="act-motor">
+        <div class="actuator-icon">⚙️</div>
+        <div class="actuator-info">
+          <div class="actuator-name">Motor / Turner</div>
+          <div class="actuator-status" id="st-motor">STANDBY</div>
+        </div>
+        <div class="led" id="led-motor"></div>
+      </div>
+      <div class="actuator-card" id="act-mist">
+        <div class="actuator-icon">🌫️</div>
+        <div class="actuator-info">
+          <div class="actuator-name">Mist Maker</div>
+          <div class="actuator-status" id="st-mist">STANDBY</div>
+        </div>
+        <div class="led" id="led-mist"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CHART + TABLE -->
+  <div class="lower-row">
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title">📈 <span class="accent">SUHU</span> — Live Graph (15 titik terakhir)</div>
+        <div style="font-family:var(--font-mono);font-size:0.65rem;color:var(--text-dim)">UPDATE: <span style="color:var(--cyan)">5 det</span></div>
+      </div>
+      <div class="panel-body">
+        <div class="chart-wrap"><canvas id="tempChart"></canvas></div>
+      </div>
     </div>
 
-    <div id="chart-wrap"><canvas id="grafikSuhu"></canvas></div>
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title">📋 <span class="accent">DATA LOG</span> — 10 Terakhir</div>
+        <div style="font-family:var(--font-mono);font-size:0.65rem;color:var(--text-dim)">TOTAL: <span id="log-count" style="color:var(--cyan)">0</span></div>
+      </div>
+      <div class="panel-body" style="padding:0">
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>#</th><th>Waktu</th><th>Suhu °C</th><th>Hum %</th><th>LDR</th></tr></thead>
+            <tbody id="log-tbody">
+              <tr><td colspan="5" style="text-align:center;padding:24px;color:var(--text-dim);font-size:0.7rem;letter-spacing:2px">— MENUNGGU DATA —</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
 
-    <button onclick="hapusHistory()">HAPUS SEMUA RIWAYAT DATA</button>
+</main>
+
+<!-- SYNC BAR -->
+<div class="sync-bar">
+  <div class="sync-item"><div id="sync-led"></div><span class="lbl">SYNC:</span><span id="sync-text">DISCONNECTED</span></div>
+  <div class="sync-item"><span class="lbl">UPDATE:</span><span id="last-update">—</span></div>
+  <div class="sync-item"><span class="lbl">RECORDS:</span><span id="rec-count" style="color:var(--cyan)">0</span></div>
+  <div class="sync-spacer"></div>
+  <button class="btn amber" onclick="exportCSV()">⬇ EXPORT CSV (100)</button>
+  <button class="btn" id="toggle-btn" onclick="toggleSync()">■ PAUSE SYNC</button>
+</div>
+
+<div id="toast"></div>
 
 <script>
-const firebaseConfig = { databaseURL: "https://penetas-telur-21ecc-default-rtdb.asia-southeast1.firebasedatabase.app" };
-firebase.initializeApp(firebaseConfig);
-const db = firebase.database();
+/* ════════════════════════════════
+   FIREBASE CONFIG — inkubator--v1
+════════════════════════════════ */
+const FB_CONFIG = {
+  apiKey:      "xCm0ksd61Ro6jIchxhiErcfGh9AtzCoCzjpcYvto",
+  authDomain:  "inkubator--v1.firebaseapp.com",
+  databaseURL: "https://inkubator--v1-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId:   "inkubator--v1",
+  storageBucket: "inkubator--v1.appspot.com",
+};
 
-// Setup Grafik
-const ctx = document.getElementById('grafikSuhu').getContext('2d');
-let myChart = new Chart(ctx, {
-    type: 'line',
-    data: { labels: [], datasets: [{ label: 'Suhu (°C)', data: [], borderColor: '#00f2ff', tension: 0.3 }] },
-    options: { maintainAspectRatio: false, scales: { y: { min: 35, max: 40 } } }
-});
+/* ════════════════════════════════
+   STATE
+════════════════════════════════ */
+let app, db;
+let liveRef, histRef;
+let liveOff, histOff;
+let historyBuf = [];
+let logBuf     = [];
+let chartLabels = [], chartData = [];
+let lastUpdateTime = null;
+let staleTimer = null;
+let paused = false;
+const STALE_MS   = 30000;
+const TEMP_MIN   = 37.5, TEMP_MAX = 38.5;
+const TEMP_CRIT_LO = 36, TEMP_CRIT_HI = 39;
 
-// 1. AMBIL DATA LAMA (BIAR GA NGULANG DARI NOL)
-db.ref('inkubator/log_history').limitToLast(20).once('value', (snap) => {
-    snap.forEach((child) => {
-        const d = child.val();
-        myChart.data.labels.push(d.w.split(' ')[1]); 
-        myChart.data.datasets[0].data.push(d.t);
-    });
-    myChart.update();
-});
-
-// 2. BACA DATA REALTIME
-db.ref('inkubator/realtime').on('value', (snap) => {
-    const d = snap.val();
-    if(d) {
-        document.getElementById('t').innerText = d.suhu.toFixed(1);
-        document.getElementById('h').innerText = d.kelembapan.toFixed(0);
-        document.getElementById('day').innerText = d.hari_ke;
-        document.getElementById('last-update').innerText = "Terakhir: " + d.waktu_update;
-        
-        // Tambah ke grafik jika data baru masuk
-        if(myChart.data.labels.length > 25) { myChart.data.labels.shift(); myChart.data.datasets[0].data.shift(); }
-        myChart.data.labels.push(d.waktu_update.split(' ')[1]);
-        myChart.data.datasets[0].data.push(d.suhu);
-        myChart.update();
-    }
-});
-
-function hapusHistory() {
-    if(confirm("Hapus history di web? (Data di SD Card tetap aman)")) {
-        db.ref('inkubator/log_history').remove();
-        location.reload();
-    }
+/* ════════════════════════════════
+   CLOCK
+════════════════════════════════ */
+function tick() {
+  const n = new Date();
+  document.getElementById('clock').textContent =
+    [n.getHours(), n.getMinutes(), n.getSeconds()]
+      .map(x => String(x).padStart(2,'0')).join(':');
 }
+setInterval(tick, 1000); tick();
+
+/* ════════════════════════════════
+   CHART
+════════════════════════════════ */
+const ctx = document.getElementById('tempChart').getContext('2d');
+const chart = new Chart(ctx, {
+  type: 'line',
+  data: {
+    labels: [],
+    datasets: [{
+      label: 'Suhu (°C)', data: [],
+      borderColor: '#00f2ff',
+      backgroundColor: ctx2 => {
+        const g = ctx2.chart.ctx.createLinearGradient(0,0,0,220);
+        g.addColorStop(0,'rgba(0,242,255,0.25)');
+        g.addColorStop(1,'rgba(0,242,255,0)');
+        return g;
+      },
+      borderWidth: 2, pointRadius: 3,
+      pointBackgroundColor: '#00f2ff', pointBorderColor: '#050a0e', pointBorderWidth: 1.5,
+      tension: 0.4, fill: true,
+    }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false, animation: { duration: 400 },
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        backgroundColor: '#0d1821', borderColor: '#00f2ff', borderWidth: 1,
+        titleColor: '#7ab8c8', bodyColor: '#00f2ff',
+        bodyFont: { family:"'Share Tech Mono'", size:13 }, padding: 10,
+        callbacks: { label: i => ` ${i.raw.toFixed(1)} °C` }
+      }
+    },
+    scales: {
+      x: { grid: { color:'rgba(0,242,255,0.06)' }, ticks: { color:'#3a6070', font:{family:"'Share Tech Mono'",size:10}, maxTicksLimit:5, maxRotation:0 } },
+      y: { grid: { color:'rgba(0,242,255,0.06)' }, ticks: { color:'#7ab8c8', font:{family:"'Share Tech Mono'",size:10}, callback: v => v.toFixed(1)+'°' }, suggestedMin:35, suggestedMax:41 }
+    }
+  }
+});
+
+Chart.register({
+  id: 'safeZone',
+  beforeDraw(c) {
+    const { ctx: cx, scales: { y, x } } = c;
+    const y1 = y.getPixelForValue(TEMP_MIN), y2 = y.getPixelForValue(TEMP_MAX);
+    cx.save();
+    cx.fillStyle = 'rgba(0,255,157,0.06)';
+    cx.fillRect(x.left, y2, x.right-x.left, y1-y2);
+    cx.strokeStyle = 'rgba(0,255,157,0.28)'; cx.lineWidth=1; cx.setLineDash([4,4]);
+    [y1,y2].forEach(py => { cx.beginPath(); cx.moveTo(x.left,py); cx.lineTo(x.right,py); cx.stroke(); });
+    cx.restore();
+  }
+});
+
+/* ════════════════════════════════
+   FIREBASE INIT & LISTENERS
+════════════════════════════════ */
+function initApp() {
+  try {
+    app = firebase.initializeApp(FB_CONFIG, 'inkubator-v1');
+    db  = firebase.database(app);
+    setSyncStatus('connecting','MENGHUBUNGKAN...');
+    startListeners();
+    toast('Firebase terhubung: inkubator--v1');
+  } catch(e) {
+    setSyncStatus('err','ERROR');
+    toast('Firebase error: '+e.message, true);
+  }
+}
+
+function startListeners() {
+  if (!db) return;
+  stopListeners();
+
+  liveRef = db.ref('inkubator/live');
+  liveOff = liveRef.on('value', snap => {
+    const d = snap.val();
+    if (!d) return;
+    processLive(d);
+    resetStale();
+    setSyncStatus('ok','SINKRON');
+  }, err => {
+    setSyncStatus('err','DB ERROR');
+    toast('Live listener: '+err.message, true);
+  });
+
+  histRef = db.ref('inkubator/history').orderByChild('w').limitToLast(100);
+  histOff = histRef.on('value', snap => {
+    const d = snap.val();
+    if (!d) return;
+    historyBuf = Object.values(d).sort((a,b)=>(b.w||0)-(a.w||0));
+    logBuf     = historyBuf.slice(0,10);
+    renderTable();
+    document.getElementById('rec-count').textContent = historyBuf.length;
+    document.getElementById('log-count').textContent = logBuf.length;
+  }, err => toast('History listener: '+err.message, true));
+}
+
+function stopListeners() {
+  if (db && liveRef && liveOff) liveRef.off('value', liveOff);
+  if (db && histRef && histOff) histRef.off('value', histOff);
+  liveOff = histOff = null;
+}
+
+/* ════════════════════════════════
+   PROCESS LIVE DATA
+   Keys: t, h, l, m, w
+════════════════════════════════ */
+function processLive(d) {
+  const temp  = parseFloat(d.t) || null;
+  const hum   = parseFloat(d.h) || null;
+  const ldr   = parseFloat(d.l) || null;
+  const motor = d.m;
+  const ts    = d.w ? new Date(d.w * 1000) : new Date();
+
+  // ── Temperature
+  if (temp !== null) {
+    const el = document.getElementById('val-temp');
+    el.innerHTML = temp.toFixed(1) + '<span class="card-unit">°C</span>';
+    document.getElementById('bar-temp').style.width = Math.min(100, Math.max(0, ((temp-34)/8)*100)) + '%';
+
+    const alarm = temp < TEMP_MIN || temp > TEMP_MAX;
+    const crit  = temp < TEMP_CRIT_LO || temp > TEMP_CRIT_HI;
+    document.getElementById('card-temp').classList.toggle('alarm', alarm);
+    document.getElementById('alarm-tag').style.display = alarm ? 'block' : 'none';
+
+    setStatusBadge(crit ? 'critical' : alarm ? 'warning' : 'ok',
+                   crit ? 'STATUS: CRITICAL' : alarm ? 'TEMP ALARM' : 'NOMINAL');
+  }
+
+  // ── Humidity
+  if (hum !== null) {
+    document.getElementById('val-hum').innerHTML = hum.toFixed(1) + '<span class="card-unit">%</span>';
+    document.getElementById('bar-hum').style.width = Math.min(100, hum) + '%';
+  }
+
+  // ── LDR
+  if (ldr !== null) {
+    document.getElementById('val-ldr').innerHTML = ldr.toFixed(0) + '<span class="card-unit" style="font-size:1rem"> ADC</span>';
+    document.getElementById('ldr-pct').textContent = ((ldr/4095)*100).toFixed(1) + '%';
+    document.getElementById('bar-ldr').style.width = Math.min(100, (ldr/4095)*100) + '%';
+  }
+
+  // ── Actuators
+  const lampOn  = temp !== null && temp < TEMP_MIN;
+  const mistOn  = hum  !== null && hum  < 55;
+  const motorOn = motor === 1 || motor === true || motor === 'ON';
+  setAct('lamp',  lampOn);
+  setAct('motor', motorOn);
+  setAct('mist',  mistOn);
+
+  // ── Chart
+  const label = [ts.getHours(), ts.getMinutes(), ts.getSeconds()].map(x=>String(x).padStart(2,'0')).join(':');
+  if (temp !== null) {
+    chartLabels.push(label); chartData.push(temp);
+    if (chartLabels.length > 15) { chartLabels.shift(); chartData.shift(); }
+    chart.data.labels = [...chartLabels];
+    chart.data.datasets[0].data = [...chartData];
+    chart.update('none');
+  }
+
+  lastUpdateTime = new Date();
+  document.getElementById('last-update').textContent = label;
+}
+
+/* ════════════════════════════════
+   ACTUATOR HELPER
+════════════════════════════════ */
+function setAct(name, on) {
+  document.getElementById('act-'+name).classList.toggle('active', on);
+  document.getElementById('st-'+name).textContent = on ? 'AKTIF' : 'STANDBY';
+  const led = document.getElementById('led-'+name);
+  led.className = 'led' + (on ? ' on' : '');
+}
+
+/* ════════════════════════════════
+   TABLE
+════════════════════════════════ */
+function renderTable() {
+  const tb = document.getElementById('log-tbody');
+  if (!logBuf.length) {
+    tb.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:20px;color:var(--text-dim);font-size:0.7rem;letter-spacing:2px">— TIDAK ADA DATA —</td></tr>';
+    return;
+  }
+  tb.innerHTML = logBuf.map((r,i) => {
+    const ts = r.w ? new Date(r.w*1000) : new Date();
+    const tStr = ts.toLocaleString('id-ID',{hour12:false});
+    return `<tr>
+      <td style="color:var(--text-dim)">${i+1}</td>
+      <td style="font-size:0.65rem">${tStr}</td>
+      <td class="tc">${parseFloat(r.t||0).toFixed(1)}</td>
+      <td class="th">${parseFloat(r.h||0).toFixed(1)}</td>
+      <td style="color:#c084fc">${parseFloat(r.l||0).toFixed(0)}</td>
+    </tr>`;
+  }).join('');
+}
+
+/* ════════════════════════════════
+   STATUS BADGE
+════════════════════════════════ */
+function setStatusBadge(state, text) {
+  const b = document.getElementById('status-badge');
+  const d = document.getElementById('status-dot');
+  b.className = 'status-badge' + (state !== 'ok' ? ' '+state : '');
+  d.className = 'dot' + (state !== 'ok' ? ' '+state : '');
+  document.getElementById('status-text').textContent = text;
+}
+
+function setSyncStatus(state, text) {
+  const led = document.getElementById('sync-led');
+  led.className = state === 'ok' ? 'ok' : state === 'err' ? 'err' : '';
+  document.getElementById('sync-text').textContent = text;
+}
+
+/* ════════════════════════════════
+   STALE DETECTION
+════════════════════════════════ */
+function resetStale() {
+  clearStale();
+  staleTimer = setTimeout(() => {
+    document.getElementById('stale-alert').classList.add('show');
+    document.getElementById('stale-time').textContent = lastUpdateTime ? lastUpdateTime.toLocaleTimeString('id-ID') : '—';
+    setSyncStatus('err','DATA STALE');
+    setStatusBadge('critical','STATUS: CRITICAL');
+    toast('⚠ Data tidak diperbarui >30 detik! ESP32 offline?', true);
+  }, STALE_MS);
+}
+
+function clearStale() {
+  if (staleTimer) clearTimeout(staleTimer);
+  document.getElementById('stale-alert').classList.remove('show');
+}
+
+/* ════════════════════════════════
+   TOGGLE SYNC
+════════════════════════════════ */
+function toggleSync() {
+  if (!db) { toast('Firebase belum terhubung', true); return; }
+  paused = !paused;
+  const btn = document.getElementById('toggle-btn');
+  if (paused) {
+    stopListeners(); clearStale();
+    setSyncStatus('','PAUSED');
+    btn.textContent = '▶ RESUME SYNC'; btn.className = 'btn green';
+    toast('Sync dijeda');
+  } else {
+    startListeners();
+    btn.textContent = '■ PAUSE SYNC'; btn.className = 'btn';
+    toast('Sync dilanjutkan');
+  }
+}
+
+/* ════════════════════════════════
+   CSV EXPORT
+════════════════════════════════ */
+function exportCSV() {
+  if (!historyBuf.length) { toast('Belum ada data history', true); return; }
+  const rows = historyBuf.slice(0, 100);
+  const BOM  = '\uFEFF';
+  const header = ['No','Timestamp','Tanggal','Waktu','Suhu (C)','Kelembaban (%)','LDR','Motor'].join(';');
+  const lines = rows.map((r,i) => {
+    const ts  = r.w ? new Date(r.w*1000) : new Date();
+    const tgl = ts.toLocaleDateString('id-ID');
+    const wkt = ts.toLocaleTimeString('id-ID',{hour12:false});
+    return [i+1, `${tgl} ${wkt}`, tgl, wkt,
+      parseFloat(r.t||0).toFixed(2),
+      parseFloat(r.h||0).toFixed(2),
+      parseFloat(r.l||0).toFixed(0),
+      (r.m===1||r.m===true||r.m==='ON') ? 'ON':'OFF'
+    ].join(';');
+  });
+  const csv  = BOM + [header, ...lines].join('\r\n');
+  const blob = new Blob([csv], { type:'text/csv;charset=utf-8;' });
+  const url  = URL.createObjectURL(blob);
+  const n    = new Date();
+  const fn   = `inkubator_log_${n.getFullYear()}${String(n.getMonth()+1).padStart(2,'0')}${String(n.getDate()).padStart(2,'0')}.csv`;
+  const a    = Object.assign(document.createElement('a'), { href:url, download:fn });
+  a.click(); URL.revokeObjectURL(url);
+  toast(`Ekspor ${rows.length} data → ${fn}`);
+}
+
+/* ════════════════════════════════
+   TOAST
+════════════════════════════════ */
+let toastTmr;
+function toast(msg, err=false) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'show' + (err ? ' err' : '');
+  clearTimeout(toastTmr);
+  toastTmr = setTimeout(() => el.className = '', 4000);
+}
+
+/* ════════════════════════════════
+   START
+════════════════════════════════ */
+window.addEventListener('load', initApp);
 </script>
 </body>
 </html>
