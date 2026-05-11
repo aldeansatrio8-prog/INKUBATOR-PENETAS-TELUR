@@ -1,244 +1,80 @@
 <!DOCTYPE html>
-<html lang="id">
+<html>
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Smart Incubator Dashboard v4.0</title>
-<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@500;700&display=swap" rel="stylesheet">
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
-
-<style>
-    :root {
-        --neon-blue: #00f2ff;
-        --neon-green: #00ff88;
-        --neon-red: #ff3131;
-        --bg-dark: #050a0e;
-        --panel: #0d1821;
-    }
-
-    body {
-        background: var(--bg-dark);
-        color: white;
-        font-family: 'Rajdhani', sans-serif;
-        margin: 0;
-        padding: 20px;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-    }
-
-    .header {
-        text-align: center;
-        margin-bottom: 30px;
-        border-bottom: 2px solid var(--neon-blue);
-        padding-bottom: 10px;
-        width: 100%;
-        max-width: 900px;
-    }
-
-    .header h1 { font-family: 'Share Tech Mono', monospace; font-size: 2.5rem; color: var(--neon-blue); margin: 0; }
-    .status-bar { font-size: 1.2rem; color: #aaa; margin-top: 5px; }
-
-    .grid-container {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-        gap: 20px;
-        width: 100%;
-        max-width: 1000px;
-    }
-
-    .card {
-        background: var(--panel);
-        border: 1px solid #1a2a3a;
-        border-radius: 15px;
-        padding: 20px;
-        text-align: center;
-        transition: 0.3s;
-        position: relative;
-        overflow: hidden;
-    }
-
-    .card:hover { border-color: var(--neon-blue); transform: translateY(-5px); }
-    .card h3 { margin: 0; color: #888; text-transform: uppercase; letter-spacing: 2px; font-size: 1rem; }
-    .value { font-size: 3.5rem; font-weight: 700; margin: 10px 0; font-family: 'Share Tech Mono', monospace; }
-    .unit { font-size: 1.2rem; color: #555; }
-
-    .info-box {
-        grid-column: 1 / -1;
-        display: flex;
-        justify-content: space-around;
-        background: #0a1117;
-        padding: 15px;
-        border-radius: 10px;
-        border-left: 5px solid var(--neon-green);
-    }
-
-    .stat-item { text-align: center; }
-    .stat-label { display: block; color: #666; font-size: 0.9rem; }
-    .stat-val { font-size: 1.5rem; color: var(--neon-green); font-weight: bold; }
-
-    #chart-container {
-        grid-column: 1 / -1;
-        background: var(--panel);
-        padding: 20px;
-        border-radius: 15px;
-        height: 350px;
-    }
-
-    .indicator {
-        display: inline-block;
-        width: 12px;
-        height: 12px;
-        border-radius: 50%;
-        margin-right: 8px;
-    }
-    .online { background: var(--neon-green); box-shadow: 0 0 10px var(--neon-green); }
-    .offline { background: var(--neon-red); }
-
-    .btn-action {
-        background: none;
-        border: 1px solid var(--neon-blue);
-        color: var(--neon-blue);
-        padding: 8px 15px;
-        border-radius: 5px;
-        cursor: pointer;
-        font-family: 'Rajdhani';
-        margin-top: 10px;
-    }
-    .btn-action:hover { background: var(--neon-blue); color: black; }
-</style>
+    <title>Inkubator Pro v4.0</title>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+    <style>
+        body { background: #050a0e; color: #00f2ff; font-family: sans-serif; text-align: center; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; padding: 20px; }
+        .card { background: #0d1821; border: 1px solid #00f2ff; padding: 20px; border-radius: 10px; }
+        .value { font-size: 2.5em; font-weight: bold; }
+        #chart-wrap { background: #0d1821; margin: 20px; padding: 20px; border-radius: 10px; height: 300px; }
+        button { background: none; border: 1px solid red; color: red; padding: 10px; cursor: pointer; border-radius: 5px; }
+        button:hover { background: red; color: white; }
+    </style>
 </head>
 <body>
+    <h1>INCUBATOR MONITORING</h1>
+    <p id="last-update">Menghubungkan...</p>
 
-<div class="header">
-    <h1>SMART INCUBATOR v4.0</h1>
-    <div class="status-bar">
-        <span id="conn-status" class="indicator offline"></span>
-        <span id="last-update">Menunggu koneksi ESP32...</span>
-    </div>
-</div>
-
-<div class="grid-container">
-    <div class="info-box">
-        <div class="stat-item">
-            <span class="stat-label">HARI KE</span>
-            <span class="stat-val" id="hari-val">0</span>
-        </div>
-        <div class="stat-item">
-            <span class="stat-label">STATUS HEATER</span>
-            <span class="stat-val" id="heater-status">OFF</span>
-        </div>
-        <div class="stat-item">
-            <span class="stat-label">STATUS MOTOR</span>
-            <span class="stat-val" id="motor-status">OFF</span>
-        </div>
+    <div class="grid">
+        <div class="card"><h3>SUHU</h3><div class="value" id="t">0</div></div>
+        <div class="card"><h3>HUMI</h3><div class="value" id="h">0</div></div>
+        <div class="card"><h3>HARI</h3><div class="value" id="day">0</div></div>
     </div>
 
-    <div class="card" id="temp-card">
-        <h3>Suhu Ruang</h3>
-        <div class="value" id="temp-val" style="color: var(--neon-blue);">00.0</div>
-        <div class="unit">Celsius</div>
-    </div>
+    <div id="chart-wrap"><canvas id="grafikSuhu"></canvas></div>
 
-    <div class="card">
-        <h3>Kelembapan</h3>
-        <div class="value" id="humi-val" style="color: var(--neon-green);">00</div>
-        <div class="unit">Persen (%)</div>
-    </div>
-
-    <div class="card">
-        <h3>Intensitas Cahaya</h3>
-        <div class="value" id="lux-val" style="color: gold;">0</div>
-        <div class="unit">Satuan Lux (0-1000)</div>
-    </div>
-
-    <div id="chart-container">
-        <canvas id="myChart"></canvas>
-    </div>
-    
-    <div style="grid-column: 1/-1; text-align: center;">
-        <button class="btn-action" onclick="resetHari()">Reset ke Hari 1</button>
-    </div>
-</div>
+    <button onclick="hapusHistory()">HAPUS SEMUA RIWAYAT DATA</button>
 
 <script>
-// --- 1. CONFIG FIREBASE ---
-const firebaseConfig = {
-    databaseURL: "https://penetas-telur-21ecc-default-rtdb.asia-southeast1.firebasedatabase.app"
-};
+const firebaseConfig = { databaseURL: "https://penetas-telur-21ecc-default-rtdb.asia-southeast1.firebasedatabase.app" };
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
-// --- 2. VAR GRAFIK ---
-const ctx = document.getElementById('myChart').getContext('2d');
-let chartData = {
-    labels: [],
-    datasets: [{
-        label: 'Suhu (°C)',
-        data: [],
-        borderColor: '#00f2ff',
-        tension: 0.4,
-        fill: true,
-        backgroundColor: 'rgba(0, 242, 255, 0.1)'
-    }]
-};
-const myChart = new Chart(ctx, {
+// Setup Grafik
+const ctx = document.getElementById('grafikSuhu').getContext('2d');
+let myChart = new Chart(ctx, {
     type: 'line',
-    data: chartData,
-    options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        scales: { y: { min: 30, max: 45 }, x: { grid: { display: false } } }
-    }
+    data: { labels: [], datasets: [{ label: 'Suhu (°C)', data: [], borderColor: '#00f2ff', tension: 0.3 }] },
+    options: { maintainAspectRatio: false, scales: { y: { min: 35, max: 40 } } }
 });
 
-// --- 3. BACA DATA REALTIME ---
-db.ref('inkubator/realtime').on('value', (snapshot) => {
-    const data = snapshot.val();
-    if (data) {
-        // Update Teks
-        document.getElementById('temp-val').innerText = data.suhu.toFixed(1);
-        document.getElementById('humi-val').innerText = data.kelembapan.toFixed(0);
-        document.getElementById('lux-val').innerText = data.cahaya;
-        document.getElementById('hari-val').innerText = data.hari_ke;
-        document.getElementById('last-update').innerText = "Last Update: " + data.waktu_update;
+// 1. AMBIL DATA LAMA (BIAR GA NGULANG DARI NOL)
+db.ref('inkubator/log_history').limitToLast(20).once('value', (snap) => {
+    snap.forEach((child) => {
+        const d = child.val();
+        myChart.data.labels.push(d.w.split(' ')[1]); 
+        myChart.data.datasets[0].data.push(d.t);
+    });
+    myChart.update();
+});
+
+// 2. BACA DATA REALTIME
+db.ref('inkubator/realtime').on('value', (snap) => {
+    const d = snap.val();
+    if(d) {
+        document.getElementById('t').innerText = d.suhu.toFixed(1);
+        document.getElementById('h').innerText = d.kelembapan.toFixed(0);
+        document.getElementById('day').innerText = d.hari_ke;
+        document.getElementById('last-update').innerText = "Terakhir: " + d.waktu_update;
         
-        // Status Indikator
-        document.getElementById('conn-status').className = "indicator online";
-        document.getElementById('heater-status').innerText = data.status_lampu ? "NYALA" : "MATI";
-        document.getElementById('heater-status').style.color = data.status_lampu ? "var(--neon-red)" : "white";
-        
-        // Animasi Grafik (Tambahkan data baru)
-        if(chartData.labels.length > 10) {
-            chartData.labels.shift();
-            chartData.datasets[0].data.shift();
-        }
-        chartData.labels.push(data.waktu_update.split(' ')[1]); // Ambil Jamnya saja
-        chartData.datasets[0].data.push(data.suhu);
+        // Tambah ke grafik jika data baru masuk
+        if(myChart.data.labels.length > 25) { myChart.data.labels.shift(); myChart.data.datasets[0].data.shift(); }
+        myChart.data.labels.push(d.waktu_update.split(' ')[1]);
+        myChart.data.datasets[0].data.push(d.suhu);
         myChart.update();
-
-        // Alaram Sederhana
-        if(data.suhu >= 38.5) {
-            document.getElementById('temp-card').style.boxShadow = "0 0 20px rgba(255,0,0,0.5)";
-        } else {
-            document.getElementById('temp-card').style.boxShadow = "none";
-        }
     }
 });
 
-// --- 4. FUNGSI RESET ---
-function resetHari() {
-    if(confirm("Apakah Anda ingin mereset masa pengeraman ke Hari 1?")) {
-        db.ref('inkubator/config').update({
-            hari_ke: 1
-        }).then(() => {
-            alert("Berhasil! ESP32 akan segera update.");
-        });
+function hapusHistory() {
+    if(confirm("Hapus history di web? (Data di SD Card tetap aman)")) {
+        db.ref('inkubator/log_history').remove();
+        location.reload();
     }
 }
 </script>
-
 </body>
 </html>
