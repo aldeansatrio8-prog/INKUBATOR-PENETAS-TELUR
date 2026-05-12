@@ -2,118 +2,163 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <title>NEXUS PRO V3.9 DASHBOARD</title>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NEXUS PRO — DATA LOGGING PERMANEN</title>
+    <!-- Firebase SDK Legacy (Lebih Stabil untuk Dashboard Sederhana) -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        :root { --cyan: #22d3ee; --bg: #020617; --card: #0f172a; }
-        body { background: var(--bg); color: white; font-family: sans-serif; padding: 20px; text-align: center; }
-        .timer-box { background: linear-gradient(135deg, #6366f1, #a855f7); padding: 25px; border-radius: 20px; margin-bottom: 20px; }
+        :root { --primary: #22d3ee; --danger: #f43f5e; --success: #10b981; --bg: #020617; --card: #0f172a; }
+        body { background: var(--bg); color: white; font-family: 'Inter', sans-serif; margin: 0; padding: 20px; }
+        .container { max-width: 1000px; margin: auto; }
+        .header { display: flex; justify-content: space-between; align-items: center; background: var(--card); padding: 20px; border-radius: 15px; border: 1px solid #1e293b; margin-bottom: 20px; }
         .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; }
-        .card { background: var(--card); border: 1px solid #1e293b; border-radius: 15px; padding: 20px; }
-        .val { font-size: 2.5rem; font-weight: bold; color: var(--cyan); }
-        .history { background: var(--card); margin-top: 20px; padding: 20px; border-radius: 15px; text-align: left; }
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-        th, td { padding: 10px; border-bottom: 1px solid #1e293b; text-align: center; }
-        button { background: white; border: none; padding: 10px 20px; border-radius: 8px; font-weight: bold; cursor: pointer; margin: 5px; }
-        .btn-csv { background: #22c55e; color: white; }
+        .card { background: var(--card); border: 1px solid #1e293b; border-radius: 15px; padding: 20px; text-align: center; }
+        .val { font-size: 2.5rem; font-weight: bold; color: var(--primary); }
+        .log-controls { margin-top: 20px; background: #1e293b; padding: 20px; border-radius: 15px; display: flex; justify-content: space-between; align-items: center; }
+        button { padding: 12px 24px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.3s; }
+        .btn-start { background: var(--success); color: white; }
+        .btn-stop { background: var(--danger); color: white; }
+        .status-badge { padding: 5px 10px; border-radius: 5px; font-size: 0.8rem; }
+        .active { background: rgba(16, 185, 129, 0.2); color: var(--success); }
+        .inactive { background: rgba(244, 63, 94, 0.2); color: var(--danger); }
+        #chart-wrapper { background: var(--card); padding: 20px; border-radius: 15px; margin-top: 20px; height: 400px; border: 1px solid #1e293b; }
+        .device-status { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; font-size: 0.9rem; }
+        .st-item { padding: 8px; border-radius: 5px; background: #1e293b; border: 1px solid #334155; }
     </style>
 </head>
 <body>
-    <h1>NEXUS INTELLIGENT SYSTEM</h1>
-    <div class="timer-box">
-        <div class="val" id="days" style="color:white">22</div>
-        <div>HARI TERSIHA MENUJU PENETASAN</div>
-        <button onclick="resetHatch()">RESET SIKLUS</button>
+
+<div class="container">
+    <div class="header">
+        <div>
+            <h2 style="margin:0">NEXUS PRO V4.5</h2>
+            <small id="last-seen">Sistem: Menghubungkan...</small>
+        </div>
+        <div id="clock" style="font-size: 1.2rem; font-weight: bold;">00:00:00</div>
     </div>
 
     <div class="grid">
-        <div class="card"><div>SUHU</div><div class="val" id="t">0.0</div></div>
-        <div class="card"><div>LEMBAP</div><div class="val" id="h">0.0</div></div>
-        <div class="card"><div>CAHAYA</div><div class="val" id="l">0</div></div>
-    </div>
-
-    <div class="history">
-        <div style="display:flex; justify-content: space-between; align-items: center;">
-            <h3>LOGGING DATA (HISTORY)</h3>
-            <button class="btn-csv" onclick="downloadCSV()">DOWNLOAD EXCEL (CSV)</button>
+        <div class="card">Suhu<div class="val" id="t">0.0</div></div>
+        <div class="card">Lembap<div class="val" id="h">0.0</div></div>
+        <div class="card">
+            Status Alat
+            <div class="device-status">
+                <div class="st-item" id="st-l">Lampu: --</div>
+                <div class="st-item" id="st-m">Mist: --</div>
+                <div class="st-item" id="st-e">Exh: --</div>
+                <div class="st-item" id="st-r">Motor: --</div>
+            </div>
         </div>
-        <canvas id="myChart" style="height:200px; margin-bottom: 20px;"></canvas>
-        <table>
-            <thead><tr><th>Waktu</th><th>Suhu</th><th>Lembap</th><th>LDR</th></tr></thead>
-            <tbody id="table-body"></tbody>
-        </table>
     </div>
 
-    <script>
-        const config = { databaseURL: "https://penetas-telur-553a3-default-rtdb.asia-southeast1.firebasedatabase.app" };
-        firebase.initializeApp(config);
-        const db = firebase.database();
-        let historyData = [];
+    <div class="log-controls">
+        <div>
+            <strong>Logging History:</strong> 
+            <span id="log-indicator" class="status-badge inactive">Non-Aktif</span>
+        </div>
+        <div>
+            <button class="btn-start" onclick="setLogging(true)">MULAI LOGGING</button>
+            <button class="btn-stop" onclick="setLogging(false)">BERHENTI</button>
+        </div>
+    </div>
 
-        // Chart.js Init
-        const ctx = document.getElementById('myChart').getContext('2d');
-        const myChart = new Chart(ctx, {
-            type: 'line',
-            data: { labels: [], datasets: [{label:'Suhu', borderColor:'#22d3ee', data:[]}, {label:'Lembap', borderColor:'#4ade80', data:[]}] }
+    <div id="chart-wrapper">
+        <canvas id="historyChart"></canvas>
+    </div>
+</div>
+
+<script>
+    // KONFIGURASI FIREBASE (Gunakan URL DB Anda)
+    const firebaseConfig = {
+        databaseURL: "https://penetas-telur-553a3-default-rtdb.asia-southeast1.firebasedatabase.app"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    // Inisialisasi Chart
+    const ctx = document.getElementById('historyChart').getContext('2d');
+    const historyChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: [],
+            datasets: [
+                { label: 'Suhu (°C)', borderColor: '#22d3ee', data: [], tension: 0.3, yAxisID: 'y' },
+                { label: 'Lembap (%)', borderColor: '#818cf8', data: [], tension: 0.3, yAxisID: 'y1' }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: { type: 'linear', display: true, position: 'left', grid: { color: '#1e293b' } },
+                y1: { type: 'linear', display: true, position: 'right', grid: { drawOnChartArea: false } }
+            },
+            plugins: { legend: { labels: { color: 'white' } } }
+        }
+    });
+
+    // 1. DATA LIVE (Status Alat & Angka)
+    db.ref('inkubator/live').on('value', snap => {
+        const d = snap.val();
+        if(!d) return;
+
+        document.getElementById('t').innerText = d.t.toFixed(1) + "°C";
+        document.getElementById('h').innerText = d.h.toFixed(1) + "%";
+        
+        const updateUI = (id, label, state) => {
+            const el = document.getElementById(id);
+            el.innerText = `${label}: ${state ? 'ON' : 'OFF'}`;
+            el.style.color = state ? '#4ade80' : '#f43f5e';
+        };
+
+        updateUI('st-l', 'Lampu', d.lampu);
+        updateUI('st-m', 'Mist', d.mist);
+        updateUI('st-e', 'Exh', d.exh);
+        updateUI('st-r', 'Motor', d.motor);
+        document.getElementById('last-seen').innerText = "Update: " + new Date().toLocaleTimeString();
+    });
+
+    // 2. DATA LOGGING PERMANEN (History)
+    // Fungsi ini menarik data dari folder history. Data di sini TIDAK AKAN HILANG meski ESP restart.
+    db.ref('inkubator/history').limitToLast(50).on('value', snap => {
+        const labels = [];
+        const tempLog = [];
+        const humLog = [];
+
+        snap.forEach(child => {
+            const val = child.val();
+            // Konversi Firebase Server Timestamp ke Jam Lokal
+            const time = new Date(val.ts).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+            labels.push(time);
+            tempLog.push(val.t);
+            humLog.push(val.h);
         });
 
-        // 1. Live Data
-        db.ref('inkubator/live').on('value', s => {
-            const d = s.val();
-            if(d) {
-                document.getElementById('t').innerText = d.t.toFixed(1) + "°C";
-                document.getElementById('h').innerText = d.h.toFixed(1) + "%";
-                document.getElementById('l').innerText = d.l;
-            }
-        });
+        historyChart.data.labels = labels;
+        historyChart.data.datasets[0].data = tempLog;
+        historyChart.data.datasets[1].data = humLog;
+        historyChart.update();
+    });
 
-        // 2. History & Table
-        db.ref('inkubator/history').limitToLast(50).on('value', s => {
-            const tbody = document.getElementById('table-body');
-            tbody.innerHTML = ""; historyData = [];
-            myChart.data.labels = []; myChart.data.datasets[0].data = []; myChart.data.datasets[1].data = [];
+    // 3. KONTROL LOGGING
+    db.ref('inkubator/settings/loggingActive').on('value', snap => {
+        const active = snap.val();
+        const ind = document.getElementById('log-indicator');
+        ind.innerText = active ? "AKTIF" : "NON-AKTIF";
+        ind.className = active ? "status-badge active" : "status-badge inactive";
+    });
 
-            s.forEach(child => {
-                const v = child.val();
-                const time = new Date(v.ts).toLocaleTimeString('id-ID');
-                historyData.push(v);
-                
-                tbody.insertAdjacentHTML('afterbegin', `<tr><td>${time}</td><td>${v.t}</td><td>${v.h}</td><td>${v.l}</td></tr>`);
-                myChart.data.labels.push(time);
-                myChart.data.datasets[0].data.push(v.t);
-                myChart.data.datasets[1].data.push(v.h);
-            });
-            myChart.update();
-        });
+    function setLogging(val) {
+        db.ref('inkubator/settings').update({ loggingActive: val });
+    }
 
-        function downloadCSV() {
-            let csv = "Waktu,Suhu,Lembap,LDR\n";
-            historyData.forEach(r => { csv += `${new Date(r.ts).toLocaleString()},${r.t},${r.h},${r.l}\n`; });
-            const blob = new Blob([csv], { type: 'text/csv' });
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.setAttribute('href', url); a.setAttribute('download', 'data_inkubator.csv');
-            a.click();
-        }
+    // Jam Digital
+    setInterval(() => {
+        document.getElementById('clock').innerText = new Date().toLocaleTimeString('id-ID');
+    }, 1000);
+</script>
 
-        function resetHatch() {
-            if(confirm("Mulai siklus baru 22 hari?")) {
-                localStorage.setItem('h_start', new Date().getTime());
-                updateDays();
-            }
-        }
-
-        function updateDays() {
-            let start = localStorage.getItem('h_start') || new Date().getTime();
-            if(!localStorage.getItem('h_start')) localStorage.setItem('h_start', start);
-            let left = Math.max(22 - Math.floor((new Date().getTime() - start)/(1000*60*60*24)), 0);
-            document.getElementById('days').innerText = left;
-            db.ref('inkubator/settings').update({ daysLeft: left });
-        }
-        updateDays();
-        setInterval(updateDays, 60000);
-    </script>
 </body>
 </html>
