@@ -1,14 +1,74 @@
-// --- KONFIGURASI FIREBASE BARU ---
-  const firebaseConfig = {
-    apiKey: "AIzaSyCDz2IvAAzkPbUmY1APGBS1GRpVIOpv5g8",
-    authDomain: "penetas-telur-553a3.firebaseapp.com",
-    databaseURL: "https://penetas-telur-553a3-default-rtdb.asia-southeast1.firebasedatabase.app",
-    projectId: "penetas-telur-553a3",
-    storageBucket: "penetas-telur-553a3.firebasestorage.app",
-    messagingSenderId: "50887200926",
-    appId: "1:50887200926:web:a134dec8ee163057532b8f"
-  };
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <title>NEXUS DASHBOARD V3.9</title>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    <style>
+        body { background: #020617; color: white; font-family: 'Segoe UI', sans-serif; text-align: center; padding: 20px; }
+        .timer-box { background: linear-gradient(135deg, #6366f1, #a855f7); padding: 30px; border-radius: 20px; margin-bottom: 25px; box-shadow: 0 10px 20px rgba(0,0,0,0.3); }
+        .card { background: #0f172a; border: 1px solid #1e293b; border-radius: 15px; padding: 20px; margin: 10px; display: inline-block; min-width: 200px; }
+        .val { font-size: 3rem; font-weight: bold; color: #22d3ee; }
+        h1 { letter-spacing: 2px; }
+        button { background: white; border: none; padding: 10px 20px; border-radius: 10px; font-weight: bold; cursor: pointer; margin-top: 15px; }
+        button:hover { background: #22d3ee; }
+    </style>
+</head>
+<body>
+    <h1>NEXUS INTELLIGENT SYSTEM</h1>
+    
+    <div class="timer-box">
+        <div class="val" id="days">22</div>
+        <div style="font-weight: bold; margin-top: 5px;">HARI TERSISA HINGGA MENETAS</div>
+        <div style="font-size: 0.8rem; opacity: 0.8;">(1 Hari Running Test + 21 Hari Pengeraman)</div>
+        <button onclick="resetHatch()">MULAI SIKLUS BARU</button>
+    </div>
 
-  // Inisialisasi (Gunakan cara compat agar cocok dengan script yang ada)
-  firebase.initializeApp(firebaseConfig);
-  const db = firebase.database();
+    <div class="card"><div>SUHU</div><div class="val" id="t">0.0</div></div>
+    <div class="card"><div>KELEMBAPAN</div><div class="val" id="h">0.0</div></div>
+    <div class="card"><div>CAHAYA</div><div class="val" id="l" style="color: #fde047;">0</div></div>
+
+    <script>
+        // Inisialisasi Firebase
+        const firebaseConfig = { databaseURL: "https://penetas-telur-553a3-default-rtdb.asia-southeast1.firebasedatabase.app" };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+
+        function checkHatchTimer() {
+            let start = localStorage.getItem('hatch_start');
+            if(!start) {
+                start = new Date().getTime();
+                localStorage.setItem('hatch_start', start);
+            }
+            let diff = new Date().getTime() - parseInt(start);
+            let daysPassed = Math.floor(diff / (1000 * 60 * 60 * 24));
+            let daysLeft = Math.max(22 - daysPassed, 0);
+            
+            document.getElementById('days').innerText = daysLeft;
+            // Update ke Firebase agar LCD ESP32 ikut berubah
+            db.ref('inkubator/settings').update({ daysLeft: daysLeft });
+        }
+
+        function resetHatch() {
+            if(confirm("Mulai siklus baru dari hari ke-22?")) {
+                localStorage.setItem('hatch_start', new Date().getTime());
+                checkHatchTimer();
+            }
+        }
+
+        // Ambil Data Live
+        db.ref('inkubator/live').on('value', (snapshot) => {
+            const data = snapshot.val();
+            if(data) {
+                document.getElementById('t').innerText = data.t.toFixed(1) + "°C";
+                document.getElementById('h').innerText = data.h.toFixed(1) + "%";
+                document.getElementById('l').innerText = data.l;
+            }
+        });
+
+        checkHatchTimer();
+        setInterval(checkHatchTimer, 3600000); // Cek ulang setiap jam
+    </script>
+</body>
+</html>
