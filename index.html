@@ -18,7 +18,14 @@
         th { border-bottom: 2px solid var(--cyan); padding: 10px; text-align: left; color: var(--cyan); }
         td { padding: 10px; border-bottom: 1px solid #1e293b; }
         .chart-box { height: 300px; margin-bottom: 30px; }
-        button { background: white; border: none; padding: 10px 20px; border-radius: 10px; font-weight: bold; cursor: pointer; }
+        
+        /* Button Styles */
+        .btn-group { display: flex; gap: 10px; }
+        button { background: white; border: none; padding: 10px 20px; border-radius: 10px; font-weight: bold; cursor: pointer; transition: 0.3s; }
+        button:hover { opacity: 0.8; transform: translateY(-2px); }
+        .btn-download { background: #22c55e; color: white; }
+        .btn-delete { background: #ef4444; color: white; }
+        .btn-reset { background: white; color: black; }
     </style>
 </head>
 <body>
@@ -26,7 +33,7 @@
     <div class="timer-box">
         <div class="val" style="color:white" id="days">22</div>
         <div style="font-weight: bold;">HARI MENUJU PENETASAN</div>
-        <button onclick="resetHatch()">RESET SIKLUS</button>
+        <button class="btn-reset" onclick="resetHatch()">RESET SIKLUS</button>
     </div>
 
     <div class="grid">
@@ -41,10 +48,16 @@
             <canvas id="myChart"></canvas>
         </div>
 
-        <div style="display: flex; justify-content: space-between; align-items: center;">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
             <h3>LOGGING DATA TERAKHIR</h3>
-            <button onclick="clearHistory()" style="background: #f87171; color: white;">HAPUS SEMUA LOG</button>
+            <div class="btn-group">
+                <button class="btn-download" onclick="downloadExcel()">
+                    <i class="fas fa-file-excel"></i> DOWNLOAD EXCEL (CSV)
+                </button>
+                <button class="btn-delete" onclick="clearHistory()">HAPUS LOG</button>
+            </div>
         </div>
+        
         <table>
             <thead>
                 <tr>
@@ -61,12 +74,12 @@
     </div>
 
     <script>
-        // Gunakan kredensial Anda sendiri jika berbeda
         const config = { databaseURL: "https://penetas-telur-553a3-default-rtdb.asia-southeast1.firebasedatabase.app" };
         firebase.initializeApp(config);
         const db = firebase.database();
 
-        // Inisialisasi Grafik
+        let rawHistoryData = []; // Variabel untuk menampung data ekspor
+
         const ctx = document.getElementById('myChart').getContext('2d');
         const myChart = new Chart(ctx, {
             type: 'line',
@@ -90,20 +103,28 @@
             }
         });
 
-        // 2. Ambil Data History (Sync dengan ESP32)
-        db.ref('inkubator/history').limitToLast(50).on('value', s => {
+        // 2. Ambil Data History
+        db.ref('inkubator/history').limitToLast(100).on('value', s => {
             const tableBody = document.getElementById('table-body');
             tableBody.innerHTML = "";
             myChart.data.labels = [];
             myChart.data.datasets[0].data = [];
             myChart.data.datasets[1].data = [];
+            rawHistoryData = []; 
 
             s.forEach(child => {
                 const val = child.val();
-                // Konversi timestamp ke format waktu lokal
-                const timeStr = new Date(val.ts).toLocaleTimeString('id-ID');
+                const dateObj = new Date(val.ts);
+                const timeStr = dateObj.toLocaleTimeString('id-ID');
+                const fullDateStr = dateObj.toLocaleString('id-ID');
                 
-                // Tambahkan ke tabel (data terbaru di atas)
+                rawHistoryData.push({
+                    waktu: fullDateStr,
+                    suhu: val.t.toFixed(2),
+                    lembap: val.h.toFixed(2),
+                    cahaya: val.l
+                });
+
                 let row = `<tr>
                     <td>${timeStr}</td>
                     <td>${val.t.toFixed(1)}</td>
@@ -112,13 +133,35 @@
                 </tr>`;
                 tableBody.insertAdjacentHTML('afterbegin', row);
 
-                // Tambahkan ke grafik
                 myChart.data.labels.push(timeStr);
                 myChart.data.datasets[0].data.push(val.t);
                 myChart.data.datasets[1].data.push(val.h);
             });
             myChart.update();
         });
+
+        // FUNGSI DOWNLOAD EXCEL (CSV)
+        function downloadExcel() {
+            if (rawHistoryData.length === 0) {
+                alert("Belum ada data untuk diunduh!");
+                return;
+            }
+
+            let csvContent = "data:text/csv;charset=utf-8,";
+            csvContent += "Waktu,Suhu (C),Kelembapan (%),Cahaya\n"; // Header
+
+            rawHistoryData.forEach(row => {
+                csvContent += `${row.waktu},${row.suhu},${row.lembap},${row.cahaya}\n`;
+            });
+
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", "data_inkubator_nexus.csv");
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
 
         function resetHatch() {
             if(confirm("Mulai siklus baru?")) {
