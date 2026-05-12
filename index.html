@@ -2,38 +2,30 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <title>NEXUS DASHBOARD PRO — V3.9</title>
+    <title>NEXUS PRO V3.9 DASHBOARD</title>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root { --cyan: #22d3ee; --bg: #020617; --card: #0f172a; }
-        body { background: var(--bg); color: white; font-family: 'Segoe UI', sans-serif; margin: 0; padding: 20px; }
-        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-top: 20px; }
-        .card { background: var(--card); border: 1px solid #1e293b; border-radius: 15px; padding: 20px; text-align: center; }
+        body { background: var(--bg); color: white; font-family: sans-serif; padding: 20px; text-align: center; }
+        .timer-box { background: linear-gradient(135deg, #6366f1, #a855f7); padding: 25px; border-radius: 20px; margin-bottom: 20px; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; }
+        .card { background: var(--card); border: 1px solid #1e293b; border-radius: 15px; padding: 20px; }
         .val { font-size: 2.5rem; font-weight: bold; color: var(--cyan); }
-        .timer-box { background: linear-gradient(135deg, #6366f1, #a855f7); padding: 30px; border-radius: 20px; margin-bottom: 25px; text-align: center; }
-        .history-container { background: var(--card); border-radius: 20px; padding: 20px; margin-top: 30px; border: 1px solid #1e293b; }
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 0.9rem; }
-        th { border-bottom: 2px solid var(--cyan); padding: 10px; text-align: left; color: var(--cyan); }
-        td { padding: 10px; border-bottom: 1px solid #1e293b; }
-        .chart-box { height: 300px; margin-bottom: 30px; }
-        
-        /* Button Styles */
-        .btn-group { display: flex; gap: 10px; }
-        button { background: white; border: none; padding: 10px 20px; border-radius: 10px; font-weight: bold; cursor: pointer; transition: 0.3s; }
-        button:hover { opacity: 0.8; transform: translateY(-2px); }
-        .btn-download { background: #22c55e; color: white; }
-        .btn-delete { background: #ef4444; color: white; }
-        .btn-reset { background: white; color: black; }
+        .history { background: var(--card); margin-top: 20px; padding: 20px; border-radius: 15px; text-align: left; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { padding: 10px; border-bottom: 1px solid #1e293b; text-align: center; }
+        button { background: white; border: none; padding: 10px 20px; border-radius: 8px; font-weight: bold; cursor: pointer; margin: 5px; }
+        .btn-csv { background: #22c55e; color: white; }
     </style>
 </head>
 <body>
-
+    <h1>NEXUS INTELLIGENT SYSTEM</h1>
     <div class="timer-box">
-        <div class="val" style="color:white" id="days">22</div>
-        <div style="font-weight: bold;">HARI MENUJU PENETASAN</div>
-        <button class="btn-reset" onclick="resetHatch()">RESET SIKLUS</button>
+        <div class="val" id="days" style="color:white">22</div>
+        <div>HARI TERSIHA MENUJU PENETASAN</div>
+        <button onclick="resetHatch()">RESET SIKLUS</button>
     </div>
 
     <div class="grid">
@@ -42,34 +34,15 @@
         <div class="card"><div>CAHAYA</div><div class="val" id="l">0</div></div>
     </div>
 
-    <div class="history-container">
-        <h3>GRAFIK RIWAYAT (DATABASE)</h3>
-        <div class="chart-box">
-            <canvas id="myChart"></canvas>
+    <div class="history">
+        <div style="display:flex; justify-content: space-between; align-items: center;">
+            <h3>LOGGING DATA (HISTORY)</h3>
+            <button class="btn-csv" onclick="downloadCSV()">DOWNLOAD EXCEL (CSV)</button>
         </div>
-
-        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
-            <h3>LOGGING DATA TERAKHIR</h3>
-            <div class="btn-group">
-                <button class="btn-download" onclick="downloadExcel()">
-                    <i class="fas fa-file-excel"></i> DOWNLOAD EXCEL (CSV)
-                </button>
-                <button class="btn-delete" onclick="clearHistory()">HAPUS LOG</button>
-            </div>
-        </div>
-        
+        <canvas id="myChart" style="height:200px; margin-bottom: 20px;"></canvas>
         <table>
-            <thead>
-                <tr>
-                    <th>Waktu (Local)</th>
-                    <th>Suhu (°C)</th>
-                    <th>Lembap (%)</th>
-                    <th>Cahaya</th>
-                </tr>
-            </thead>
-            <tbody id="table-body">
-                <!-- Data akan masuk di sini -->
-            </tbody>
+            <thead><tr><th>Waktu</th><th>Suhu</th><th>Lembap</th><th>LDR</th></tr></thead>
+            <tbody id="table-body"></tbody>
         </table>
     </div>
 
@@ -77,114 +50,70 @@
         const config = { databaseURL: "https://penetas-telur-553a3-default-rtdb.asia-southeast1.firebasedatabase.app" };
         firebase.initializeApp(config);
         const db = firebase.database();
+        let historyData = [];
 
-        let rawHistoryData = []; // Variabel untuk menampung data ekspor
-
+        // Chart.js Init
         const ctx = document.getElementById('myChart').getContext('2d');
         const myChart = new Chart(ctx, {
             type: 'line',
-            data: {
-                labels: [],
-                datasets: [
-                    { label: 'Suhu', borderColor: '#22d3ee', data: [], tension: 0.3 },
-                    { label: 'Lembap', borderColor: '#4ade80', data: [], tension: 0.3 }
-                ]
-            },
-            options: { responsive: true, maintainAspectRatio: false, scales: { y: { grid: { color: '#1e293b' } } } }
+            data: { labels: [], datasets: [{label:'Suhu', borderColor:'#22d3ee', data:[]}, {label:'Lembap', borderColor:'#4ade80', data:[]}] }
         });
 
-        // 1. Ambil Data Live
+        // 1. Live Data
         db.ref('inkubator/live').on('value', s => {
             const d = s.val();
-            if(d){
+            if(d) {
                 document.getElementById('t').innerText = d.t.toFixed(1) + "°C";
                 document.getElementById('h').innerText = d.h.toFixed(1) + "%";
                 document.getElementById('l').innerText = d.l;
             }
         });
 
-        // 2. Ambil Data History
-        db.ref('inkubator/history').limitToLast(100).on('value', s => {
-            const tableBody = document.getElementById('table-body');
-            tableBody.innerHTML = "";
-            myChart.data.labels = [];
-            myChart.data.datasets[0].data = [];
-            myChart.data.datasets[1].data = [];
-            rawHistoryData = []; 
+        // 2. History & Table
+        db.ref('inkubator/history').limitToLast(50).on('value', s => {
+            const tbody = document.getElementById('table-body');
+            tbody.innerHTML = ""; historyData = [];
+            myChart.data.labels = []; myChart.data.datasets[0].data = []; myChart.data.datasets[1].data = [];
 
             s.forEach(child => {
-                const val = child.val();
-                const dateObj = new Date(val.ts);
-                const timeStr = dateObj.toLocaleTimeString('id-ID');
-                const fullDateStr = dateObj.toLocaleString('id-ID');
+                const v = child.val();
+                const time = new Date(v.ts).toLocaleTimeString('id-ID');
+                historyData.push(v);
                 
-                rawHistoryData.push({
-                    waktu: fullDateStr,
-                    suhu: val.t.toFixed(2),
-                    lembap: val.h.toFixed(2),
-                    cahaya: val.l
-                });
-
-                let row = `<tr>
-                    <td>${timeStr}</td>
-                    <td>${val.t.toFixed(1)}</td>
-                    <td>${val.h.toFixed(1)}</td>
-                    <td>${val.l}</td>
-                </tr>`;
-                tableBody.insertAdjacentHTML('afterbegin', row);
-
-                myChart.data.labels.push(timeStr);
-                myChart.data.datasets[0].data.push(val.t);
-                myChart.data.datasets[1].data.push(val.h);
+                tbody.insertAdjacentHTML('afterbegin', `<tr><td>${time}</td><td>${v.t}</td><td>${v.h}</td><td>${v.l}</td></tr>`);
+                myChart.data.labels.push(time);
+                myChart.data.datasets[0].data.push(v.t);
+                myChart.data.datasets[1].data.push(v.h);
             });
             myChart.update();
         });
 
-        // FUNGSI DOWNLOAD EXCEL (CSV)
-        function downloadExcel() {
-            if (rawHistoryData.length === 0) {
-                alert("Belum ada data untuk diunduh!");
-                return;
-            }
-
-            let csvContent = "data:text/csv;charset=utf-8,";
-            csvContent += "Waktu,Suhu (C),Kelembapan (%),Cahaya\n"; // Header
-
-            rawHistoryData.forEach(row => {
-                csvContent += `${row.waktu},${row.suhu},${row.lembap},${row.cahaya}\n`;
-            });
-
-            const encodedUri = encodeURI(csvContent);
-            const link = document.createElement("a");
-            link.setAttribute("href", encodedUri);
-            link.setAttribute("download", "data_inkubator_nexus.csv");
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
+        function downloadCSV() {
+            let csv = "Waktu,Suhu,Lembap,LDR\n";
+            historyData.forEach(r => { csv += `${new Date(r.ts).toLocaleString()},${r.t},${r.h},${r.l}\n`; });
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.setAttribute('href', url); a.setAttribute('download', 'data_inkubator.csv');
+            a.click();
         }
 
         function resetHatch() {
-            if(confirm("Mulai siklus baru?")) {
-                localStorage.setItem('hatch_start', new Date().getTime());
-                location.reload();
+            if(confirm("Mulai siklus baru 22 hari?")) {
+                localStorage.setItem('h_start', new Date().getTime());
+                updateDays();
             }
         }
 
-        function clearHistory() {
-            if(confirm("Hapus semua riwayat data di database?")) {
-                db.ref('inkubator/history').remove();
-            }
-        }
-
-        function checkDays() {
-            let start = localStorage.getItem('hatch_start') || new Date().getTime();
-            if(!localStorage.getItem('hatch_start')) localStorage.setItem('hatch_start', start);
-            let diff = new Date().getTime() - parseInt(start);
-            let left = Math.max(22 - Math.floor(diff/(1000*60*60*24)), 0);
+        function updateDays() {
+            let start = localStorage.getItem('h_start') || new Date().getTime();
+            if(!localStorage.getItem('h_start')) localStorage.setItem('h_start', start);
+            let left = Math.max(22 - Math.floor((new Date().getTime() - start)/(1000*60*60*24)), 0);
             document.getElementById('days').innerText = left;
             db.ref('inkubator/settings').update({ daysLeft: left });
         }
-        checkDays();
+        updateDays();
+        setInterval(updateDays, 60000);
     </script>
 </body>
 </html>
