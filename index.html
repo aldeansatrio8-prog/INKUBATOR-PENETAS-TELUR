@@ -2,73 +2,146 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <title>NEXUS DASHBOARD V3.9</title>
+    <title>NEXUS DASHBOARD PRO — V3.9</title>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        body { background: #020617; color: white; font-family: 'Segoe UI', sans-serif; text-align: center; padding: 20px; }
-        .timer-box { background: linear-gradient(135deg, #6366f1, #a855f7); padding: 30px; border-radius: 20px; margin-bottom: 25px; box-shadow: 0 10px 20px rgba(0,0,0,0.3); }
-        .card { background: #0f172a; border: 1px solid #1e293b; border-radius: 15px; padding: 20px; margin: 10px; display: inline-block; min-width: 200px; }
-        .val { font-size: 3rem; font-weight: bold; color: #22d3ee; }
-        h1 { letter-spacing: 2px; }
-        button { background: white; border: none; padding: 10px 20px; border-radius: 10px; font-weight: bold; cursor: pointer; margin-top: 15px; }
-        button:hover { background: #22d3ee; }
+        :root { --cyan: #22d3ee; --bg: #020617; --card: #0f172a; }
+        body { background: var(--bg); color: white; font-family: 'Segoe UI', sans-serif; margin: 0; padding: 20px; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-top: 20px; }
+        .card { background: var(--card); border: 1px solid #1e293b; border-radius: 15px; padding: 20px; text-align: center; }
+        .val { font-size: 2.5rem; font-weight: bold; color: var(--cyan); }
+        .timer-box { background: linear-gradient(135deg, #6366f1, #a855f7); padding: 30px; border-radius: 20px; margin-bottom: 25px; text-align: center; }
+        .history-container { background: var(--card); border-radius: 20px; padding: 20px; margin-top: 30px; border: 1px solid #1e293b; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 0.9rem; }
+        th { border-bottom: 2px solid var(--cyan); padding: 10px; text-align: left; color: var(--cyan); }
+        td { padding: 10px; border-bottom: 1px solid #1e293b; }
+        .chart-box { height: 300px; margin-bottom: 30px; }
+        button { background: white; border: none; padding: 10px 20px; border-radius: 10px; font-weight: bold; cursor: pointer; }
     </style>
 </head>
 <body>
-    <h1>NEXUS INTELLIGENT SYSTEM</h1>
-    
+
     <div class="timer-box">
-        <div class="val" id="days">22</div>
-        <div style="font-weight: bold; margin-top: 5px;">HARI TERSISA HINGGA MENETAS</div>
-        <div style="font-size: 0.8rem; opacity: 0.8;">(1 Hari Running Test + 21 Hari Pengeraman)</div>
-        <button onclick="resetHatch()">MULAI SIKLUS BARU</button>
+        <div class="val" style="color:white" id="days">22</div>
+        <div style="font-weight: bold;">HARI MENUJU PENETASAN</div>
+        <button onclick="resetHatch()">RESET SIKLUS</button>
     </div>
 
-    <div class="card"><div>SUHU</div><div class="val" id="t">0.0</div></div>
-    <div class="card"><div>KELEMBAPAN</div><div class="val" id="h">0.0</div></div>
-    <div class="card"><div>CAHAYA</div><div class="val" id="l" style="color: #fde047;">0</div></div>
+    <div class="grid">
+        <div class="card"><div>SUHU</div><div class="val" id="t">0.0</div></div>
+        <div class="card"><div>LEMBAP</div><div class="val" id="h">0.0</div></div>
+        <div class="card"><div>CAHAYA</div><div class="val" id="l">0</div></div>
+    </div>
+
+    <div class="history-container">
+        <h3>GRAFIK RIWAYAT (DATABASE)</h3>
+        <div class="chart-box">
+            <canvas id="myChart"></canvas>
+        </div>
+
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <h3>LOGGING DATA TERAKHIR</h3>
+            <button onclick="clearHistory()" style="background: #f87171; color: white;">HAPUS SEMUA LOG</button>
+        </div>
+        <table>
+            <thead>
+                <tr>
+                    <th>Waktu (Local)</th>
+                    <th>Suhu (°C)</th>
+                    <th>Lembap (%)</th>
+                    <th>Cahaya</th>
+                </tr>
+            </thead>
+            <tbody id="table-body">
+                <!-- Data akan masuk di sini -->
+            </tbody>
+        </table>
+    </div>
 
     <script>
-        // Inisialisasi Firebase
-        const firebaseConfig = { databaseURL: "https://penetas-telur-553a3-default-rtdb.asia-southeast1.firebasedatabase.app" };
-        firebase.initializeApp(firebaseConfig);
+        // Gunakan kredensial Anda sendiri jika berbeda
+        const config = { databaseURL: "https://penetas-telur-553a3-default-rtdb.asia-southeast1.firebasedatabase.app" };
+        firebase.initializeApp(config);
         const db = firebase.database();
 
-        function checkHatchTimer() {
-            let start = localStorage.getItem('hatch_start');
-            if(!start) {
-                start = new Date().getTime();
-                localStorage.setItem('hatch_start', start);
-            }
-            let diff = new Date().getTime() - parseInt(start);
-            let daysPassed = Math.floor(diff / (1000 * 60 * 60 * 24));
-            let daysLeft = Math.max(22 - daysPassed, 0);
-            
-            document.getElementById('days').innerText = daysLeft;
-            // Update ke Firebase agar LCD ESP32 ikut berubah
-            db.ref('inkubator/settings').update({ daysLeft: daysLeft });
-        }
+        // Inisialisasi Grafik
+        const ctx = document.getElementById('myChart').getContext('2d');
+        const myChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [
+                    { label: 'Suhu', borderColor: '#22d3ee', data: [], tension: 0.3 },
+                    { label: 'Lembap', borderColor: '#4ade80', data: [], tension: 0.3 }
+                ]
+            },
+            options: { responsive: true, maintainAspectRatio: false, scales: { y: { grid: { color: '#1e293b' } } } }
+        });
 
-        function resetHatch() {
-            if(confirm("Mulai siklus baru dari hari ke-22?")) {
-                localStorage.setItem('hatch_start', new Date().getTime());
-                checkHatchTimer();
-            }
-        }
-
-        // Ambil Data Live
-        db.ref('inkubator/live').on('value', (snapshot) => {
-            const data = snapshot.val();
-            if(data) {
-                document.getElementById('t').innerText = data.t.toFixed(1) + "°C";
-                document.getElementById('h').innerText = data.h.toFixed(1) + "%";
-                document.getElementById('l').innerText = data.l;
+        // 1. Ambil Data Live
+        db.ref('inkubator/live').on('value', s => {
+            const d = s.val();
+            if(d){
+                document.getElementById('t').innerText = d.t.toFixed(1) + "°C";
+                document.getElementById('h').innerText = d.h.toFixed(1) + "%";
+                document.getElementById('l').innerText = d.l;
             }
         });
 
-        checkHatchTimer();
-        setInterval(checkHatchTimer, 3600000); // Cek ulang setiap jam
+        // 2. Ambil Data History (Sync dengan ESP32)
+        db.ref('inkubator/history').limitToLast(50).on('value', s => {
+            const tableBody = document.getElementById('table-body');
+            tableBody.innerHTML = "";
+            myChart.data.labels = [];
+            myChart.data.datasets[0].data = [];
+            myChart.data.datasets[1].data = [];
+
+            s.forEach(child => {
+                const val = child.val();
+                // Konversi timestamp ke format waktu lokal
+                const timeStr = new Date(val.ts).toLocaleTimeString('id-ID');
+                
+                // Tambahkan ke tabel (data terbaru di atas)
+                let row = `<tr>
+                    <td>${timeStr}</td>
+                    <td>${val.t.toFixed(1)}</td>
+                    <td>${val.h.toFixed(1)}</td>
+                    <td>${val.l}</td>
+                </tr>`;
+                tableBody.insertAdjacentHTML('afterbegin', row);
+
+                // Tambahkan ke grafik
+                myChart.data.labels.push(timeStr);
+                myChart.data.datasets[0].data.push(val.t);
+                myChart.data.datasets[1].data.push(val.h);
+            });
+            myChart.update();
+        });
+
+        function resetHatch() {
+            if(confirm("Mulai siklus baru?")) {
+                localStorage.setItem('hatch_start', new Date().getTime());
+                location.reload();
+            }
+        }
+
+        function clearHistory() {
+            if(confirm("Hapus semua riwayat data di database?")) {
+                db.ref('inkubator/history').remove();
+            }
+        }
+
+        function checkDays() {
+            let start = localStorage.getItem('hatch_start') || new Date().getTime();
+            if(!localStorage.getItem('hatch_start')) localStorage.setItem('hatch_start', start);
+            let diff = new Date().getTime() - parseInt(start);
+            let left = Math.max(22 - Math.floor(diff/(1000*60*60*24)), 0);
+            document.getElementById('days').innerText = left;
+            db.ref('inkubator/settings').update({ daysLeft: left });
+        }
+        checkDays();
     </script>
 </body>
 </html>
