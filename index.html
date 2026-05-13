@@ -3,299 +3,324 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NEXUS ULTIMATE V6.5</title>
-    <!-- Firebase SDK -->
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
-    <!-- Chart.js -->
+    <title>Nexus Incubator Dashboard Pro</title>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Lucide Icons -->
-    <script src="https://unpkg.com/lucide@latest"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap');
-        
         :root {
-            --primary: #00f2ff;
-            --secondary: #7000ff;
-            --success: #00ff88;
-            --danger: #ff3e3e;
-            --bg: #030712;
-            --card: rgba(30, 41, 59, 0.6);
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --primary: #38bdf8;
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --text-main: #f8fafc;
+            --text-dim: #94a3b8;
         }
 
         body {
-            background-color: var(--bg);
-            color: #f8fafc;
-            font-family: 'Plus Jakarta Sans', sans-serif;
-            background-image: 
-                radial-gradient(circle at 0% 0%, rgba(112, 0, 255, 0.15) 0%, transparent 40%),
-                radial-gradient(circle at 100% 100%, rgba(0, 242, 255, 0.1) 0%, transparent 40%);
-            min-height: 100vh;
+            font-family: 'Segoe UI', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            padding: 20px;
         }
 
-        .glass {
-            background: var(--card);
-            backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 24px;
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
         }
 
-        .status-glow-on {
-            box-shadow: 0 0 15px rgba(0, 242, 255, 0.5);
-            border-color: var(--primary);
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        header h1 {
             color: var(--primary);
+            margin: 0;
+            font-size: 2.5rem;
         }
 
-        @keyframes spin-slow {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
+        .status-badges {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 10px;
         }
-        .spinning { animation: spin-slow 2s linear infinite; }
-        
-        ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
+
+        .badge {
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+            border: 1px solid transparent;
+        }
+
+        .on { background: rgba(16, 185, 129, 0.2); color: var(--success); border-color: var(--success); }
+        .off { background: rgba(239, 68, 68, 0.2); color: var(--danger); border-color: var(--danger); }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .card {
+            background: var(--card-bg);
+            padding: 20px;
+            border-radius: 15px;
+            text-align: center;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+        }
+
+        .card .label { color: var(--text-dim); font-size: 14px; text-transform: uppercase; }
+        .card .value { font-size: 36px; font-weight: bold; margin: 10px 0; }
+        .card .unit { font-size: 18px; color: var(--text-dim); }
+
+        .chart-container {
+            background: var(--card-bg);
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 20px;
+            height: 300px;
+        }
+
+        .relay-status-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .relay-item {
+            background: var(--card-bg);
+            padding: 15px;
+            border-radius: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .log-section {
+            background: var(--card-bg);
+            padding: 20px;
+            border-radius: 15px;
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+
+        th, td {
+            text-align: left;
+            padding: 12px;
+            border-bottom: 1px solid #334155;
+        }
+
+        th { color: var(--text-dim); font-size: 13px; }
+
+        .indicator-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 5px;
+        }
+        .dot-on { background: var(--success); box-shadow: 0 0 8px var(--success); }
+        .dot-off { background: var(--danger); }
     </style>
 </head>
-<body class="p-4 md:p-8">
+<body>
 
-<div class="max-w-6xl mx-auto">
-    <!-- Header -->
-    <header class="glass p-6 mb-8 flex flex-col md:flex-row justify-between items-center gap-4">
-        <div class="flex items-center gap-4">
-            <div class="bg-cyan-500 p-3 rounded-2xl shadow-lg shadow-cyan-500/20">
-                <i data-lucide="layout-dashboard" class="text-slate-900"></i>
-            </div>
-            <div>
-                <h1 class="text-2xl font-extrabold tracking-tight text-white">NEXUS <span class="text-cyan-400">INCUBATOR</span></h1>
-                <p class="text-slate-400 text-sm font-semibold uppercase tracking-widest">System Monitor V4.5</p>
-            </div>
-        </div>
-        <div class="flex items-center gap-3">
-            <div id="connection-status" class="px-4 py-2 rounded-full glass text-xs flex items-center gap-2">
-                <div class="w-2 h-2 rounded-full bg-rose-500 animate-pulse"></div> Offline
-            </div>
-            <div id="day-counter" class="bg-indigo-600 px-6 py-2 rounded-full font-bold text-sm shadow-lg shadow-indigo-500/30">
-                HARI KE: --
-            </div>
+<div class="container">
+    <header>
+        <h1>NEXUS DASHBOARD</h1>
+        <div class="status-badges">
+            <span id="sys-status" class="badge off">System Offline</span>
+            <span id="sd-status" class="badge off">SD: Error</span>
         </div>
     </header>
 
-    <!-- Main Stats -->
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <div class="glass p-8 relative overflow-hidden">
-            <p class="text-slate-400 text-xs font-bold uppercase mb-2 text-center">Suhu Internal</p>
-            <div class="flex justify-center items-baseline gap-2">
-                <span id="val-t" class="text-6xl font-extrabold">--.-</span>
-                <span class="text-2xl text-slate-500 font-bold">°C</span>
-            </div>
+    <div class="main-grid">
+        <div class="card">
+            <i class="fas fa-thermometer-half" style="color: #fb7185"></i>
+            <div class="label">Suhu</div>
+            <div class="value"><span id="val-t">--.-</span><span class="unit">°C</span></div>
         </div>
-        <div class="glass p-8 relative overflow-hidden">
-            <p class="text-slate-400 text-xs font-bold uppercase mb-2 text-center">Kelembapan</p>
-            <div class="flex justify-center items-baseline gap-2">
-                <span id="val-h" class="text-6xl font-extrabold">--</span>
-                <span class="text-2xl text-slate-500 font-bold">%</span>
-            </div>
+        <div class="card">
+            <i class="fas fa-tint" style="color: #38bdf8"></i>
+            <div class="label">Lembap</div>
+            <div class="value"><span id="val-h">--</span><span class="unit">%</span></div>
         </div>
-        <div class="glass p-8 flex flex-col justify-center items-center text-center">
-            <p class="text-slate-400 text-xs font-bold uppercase mb-2">Waktu & Penyimpanan</p>
-            <h3 id="val-time" class="text-4xl font-extrabold text-cyan-400">--:--:--</h3>
-            <div id="sd-status-container" class="mt-4 flex items-center gap-2 px-4 py-1.5 rounded-xl bg-slate-800/50 border border-white/5">
-                <i data-lucide="hard-drive" size="14"></i>
-                <span id="val-sd" class="text-[11px] font-black tracking-widest uppercase">Checking...</span>
-            </div>
+        <div class="card">
+            <i class="fas fa-sun" style="color: #fbbf24"></i>
+            <div class="label">Intensitas Cahaya</div>
+            <div class="value"><span id="val-l">--</span><span class="unit">Lux</span></div>
         </div>
     </div>
 
-    <!-- Components Status -->
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-        <div id="card-lamp" class="glass p-6 text-center">
-            <i data-lucide="flame" class="mx-auto mb-3"></i>
-            <p class="text-[10px] font-bold text-slate-500 uppercase">Heater</p>
-            <p id="txt-lamp" class="font-black text-lg">OFF</p>
+    <div class="chart-container">
+        <canvas id="liveChart"></canvas>
+    </div>
+
+    <div class="relay-status-grid">
+        <div class="relay-item">
+            <span><i class="fas fa-lightbulb"></i> Lampu</span>
+            <span id="st-lamp" class="badge off">OFF</span>
         </div>
-        <div id="card-mist" class="glass p-6 text-center">
-            <i data-lucide="cloud-rain" class="mx-auto mb-3"></i>
-            <p class="text-[10px] font-bold text-slate-500 uppercase">Mist Maker</p>
-            <p id="txt-mist" class="font-black text-lg">OFF</p>
+        <div class="relay-item">
+            <span><i class="fas fa-wind"></i> Exhaust</span>
+            <span id="st-exh" class="badge off">OFF</span>
         </div>
-        <div id="card-exh" class="glass p-6 text-center">
-            <i data-lucide="fan" id="icon-exh" class="mx-auto mb-3"></i>
-            <p class="text-[10px] font-bold text-slate-500 uppercase">Exhaust</p>
-            <p id="txt-exh" class="font-black text-lg">OFF</p>
+        <div class="relay-item">
+            <span><i class="fas fa-cloud-rain"></i> Mist Maker</span>
+            <span id="st-mist" class="badge off">OFF</span>
         </div>
-        <div id="card-roll" class="glass p-6 text-center">
-            <i data-lucide="refresh-cw" id="icon-roll" class="mx-auto mb-3"></i>
-            <p class="text-[10px] font-bold text-slate-500 uppercase">Motor Roll</p>
-            <p id="txt-roll" class="font-black text-lg">WAIT</p>
+        <div class="relay-item">
+            <span><i class="fas fa-sync"></i> Motor Rak</span>
+            <span id="st-motor" class="badge off">OFF</span>
         </div>
     </div>
 
-    <!-- Bottom Section: Chart & Table -->
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div class="glass p-6 lg:col-span-2">
-            <h3 class="font-bold mb-4">Grafik Tren Sensor</h3>
-            <div class="h-64"><canvas id="mainChart"></canvas></div>
-        </div>
-        
-        <div class="glass p-6 overflow-hidden flex flex-col">
-            <div class="flex justify-between items-center mb-4">
-                <h3 class="font-bold">Riwayat Log</h3>
-                <!-- TOMBOL DOWNLOAD CSV -->
-                <button onclick="downloadCSV()" class="bg-cyan-500/10 hover:bg-cyan-500 text-cyan-400 hover:text-white p-2 rounded-lg transition-all flex items-center gap-2 text-[10px] font-bold border border-cyan-500/20">
-                    <i data-lucide="download" size="14"></i> EXPORT CSV
-                </button>
-            </div>
-            <div class="overflow-y-auto flex-grow pr-2 text-xs">
-                <table class="w-full" id="historyTable">
-                    <thead class="text-slate-500 text-left">
-                        <tr><th class="pb-2">Waktu</th><th class="pb-2 text-center">T (°C)</th><th class="pb-2 text-center">H (%)</th></tr>
-                    </thead>
-                    <tbody id="table-body" class="divide-y divide-white/5"></tbody>
-                </table>
-            </div>
-        </div>
+    <div class="log-section">
+        <h3><i class="fas fa-history"></i> Log Data Terakhir</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Waktu</th>
+                    <th>Suhu</th>
+                    <th>Humi</th>
+                    <th>LDR</th>
+                    <th>Status Motor</th>
+                </tr>
+            </thead>
+            <tbody id="log-body">
+                <!-- Data dari Firebase akan muncul di sini -->
+            </tbody>
+        </table>
     </div>
 </div>
 
 <script>
-    lucide.createIcons();
-    // Konfigurasi Firebase
-    const firebaseConfig = { databaseURL: "https://penetas-telur-553a3-default-rtdb.asia-southeast1.firebasedatabase.app" };
+    // --- KONFIGURASI FIREBASE ---
+    const firebaseConfig = {
+        databaseURL: "https://penetas-telur-553a3-default-rtdb.asia-southeast1.firebasedatabase.app"
+    };
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    let historyData = []; // Array penampung data untuk export
-
-    // Inisialisasi Chart
-    const ctx = document.getElementById('mainChart').getContext('2d');
-    const mainChart = new Chart(ctx, {
+    // --- INISIALISASI GRAFIK ---
+    const ctx = document.getElementById('liveChart').getContext('2d');
+    const liveChart = new Chart(ctx, {
         type: 'line',
-        data: { labels: [], datasets: [
-            { label: 'Suhu', borderColor: '#00f2ff', data: [], tension: 0.4, pointRadius: 2, backgroundColor: 'rgba(0,242,255,0.1)', fill: true },
-            { label: 'Humi', borderColor: '#7000ff', data: [], tension: 0.4, pointRadius: 2 }
-        ]},
-        options: { 
-            responsive: true, 
-            maintainAspectRatio: false, 
-            plugins: { legend: { display: false } }, 
-            scales: { 
-                y: { grid: { color: 'rgba(255,255,255,0.05)' } }, 
-                x: { grid: { display: false } } 
-            } 
-        }
-    });
-
-    // Listener Data Live (Realtime)
-    db.ref('inkubator/live').on('value', snap => {
-        const d = snap.val();
-        if(!d) return;
-
-        // Update teks angka
-        document.getElementById('val-t').innerText = d.t ? d.t.toFixed(1) : "--.-";
-        document.getElementById('val-h').innerText = d.h ? Math.round(d.h) : "--";
-        document.getElementById('val-time').innerText = d.ts || "--:--:--";
-        
-        // Status SD Card
-        const sdTxt = document.getElementById('val-sd');
-        const sdCont = document.getElementById('sd-status-container');
-        if(d.sd_st === true) {
-            sdTxt.innerText = "SD CARD: OK";
-            sdTxt.className = "text-[11px] font-black tracking-widest uppercase text-emerald-400";
-            sdCont.style.borderColor = "rgba(16, 185, 129, 0.3)";
-        } else {
-            sdTxt.innerText = "SD CARD: ERROR";
-            sdTxt.className = "text-[11px] font-black tracking-widest uppercase text-rose-500";
-            sdCont.style.borderColor = "rgba(244, 63, 94, 0.3)";
-        }
-
-        document.getElementById('connection-status').innerHTML = `<div class="w-2 h-2 rounded-full bg-emerald-500"></div> Online`;
-
-        // Update Status Komponen (Lampu, Mist, dll)
-        const updateComp = (id, st, iconId) => {
-            const card = document.getElementById('card-'+id);
-            const txt = document.getElementById('txt-'+id);
-            if(st) { 
-                card.classList.add('status-glow-on'); 
-                txt.innerText = id==='roll'?'ROLLING':'ON';
-                if(iconId) document.getElementById(iconId).classList.add('spinning');
-            } else { 
-                card.classList.remove('status-glow-on'); 
-                txt.innerText = id==='roll'?'WAIT':'OFF';
-                if(iconId) document.getElementById(iconId).classList.remove('spinning');
+        data: {
+            labels: [],
+            datasets: [{
+                label: 'Suhu (°C)',
+                borderColor: '#fb7185',
+                data: [],
+                borderWidth: 2,
+                fill: false,
+                tension: 0.4
+            }, {
+                label: 'Lembap (%)',
+                borderColor: '#38bdf8',
+                data: [],
+                borderWidth: 2,
+                fill: false,
+                tension: 0.4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                x: { ticks: { color: '#94a3b8' } },
+                y: { ticks: { color: '#94a3b8' } }
+            },
+            plugins: {
+                legend: { labels: { color: '#f8fafc' } }
             }
-        };
-        updateComp('lamp', d.l_st);
-        updateComp('mist', d.m_st);
-        updateComp('exh', d.e_st, 'icon-exh');
-        updateComp('roll', d.r_st, 'icon-roll');
-    });
-
-    // Listener Riwayat Log (History)
-    db.ref('inkubator/history').limitToLast(100).on('value', snap => {
-        let labels=[], temps=[], hums=[], rows="";
-        historyData = []; 
-        
-        snap.forEach(c => { 
-            const val = c.val();
-            // Parsing waktu: Jika ESP kirim angka (ms), lsg pakai. Jika string, parsing dulu.
-            const date = new Date(val.ts);
-            const timeStr = date.toLocaleString('id-ID');
-            
-            // Simpan ke array untuk CSV
-            historyData.push({ waktu: timeStr, suhu: val.t, lembap: val.h });
-            
-            // Data untuk Chart
-            labels.push(date.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}));
-            temps.push(val.t); 
-            hums.push(val.h);
-        });
-        
-        // Update Chart
-        mainChart.data.labels = labels;
-        mainChart.data.datasets[0].data = temps;
-        mainChart.data.datasets[1].data = hums;
-        mainChart.update();
-
-        // Update Tabel (Data terbaru di atas)
-        [...historyData].reverse().forEach(v => {
-            rows += `<tr>
-                <td class="py-2 text-slate-400">${v.waktu}</td>
-                <td class="text-center font-bold text-cyan-400">${v.suhu ? v.suhu.toFixed(1) : '--'}</td>
-                <td class="text-center text-indigo-400">${v.lembap ? Math.round(v.lembap) : '--'}</td>
-            </tr>`;
-        });
-        document.getElementById('table-body').innerHTML = rows;
-
-        // Hitung Hari Ke (Berdasarkan data pertama di history)
-        if(historyData.length > 0) {
-            const firstDate = new Date(historyData[0].waktu.split(' ')[0].split('/').reverse().join('-'));
-            const diff = Math.floor((new Date() - firstDate) / (1000 * 60 * 60 * 24)) + 1;
-            document.getElementById('day-counter').innerText = "HARI KE: " + diff;
         }
     });
 
-    // Fungsi Export CSV
-    function downloadCSV() {
-        if(historyData.length === 0) {
-            alert("Belum ada data history yang tersimpan di Cloud.");
-            return;
-        }
-        
-        let csvContent = "data:text/csv;charset=utf-8,Waktu,Suhu (C),Kelembapan (%)\n";
-        historyData.forEach(row => {
-            csvContent += `${row.waktu},${row.suhu},${row.lembap}\n`;
-        });
+    // --- MENDENGARKAN DATA REAL-TIME ---
+    db.ref('/inkubator/live').on('value', (snapshot) => {
+        const data = snapshot.val();
+        if (data) {
+            // Update Angka
+            document.getElementById('val-t').innerText = data.t.toFixed(1);
+            document.getElementById('val-h').innerText = data.h.toFixed(0);
+            // Anggap LDR dikirim dari ESP32 dengan key 'ldr' (atau random mock jika belum ada)
+            const ldrVal = data.ldr || Math.floor(Math.random() * 500); 
+            document.getElementById('val-l').innerText = ldrVal;
 
-        const encodedUri = encodeURI(csvContent);
-        const link = document.createElement("a");
-        link.setAttribute("href", encodedUri);
-        link.setAttribute("download", "Nexus_Log_" + new Date().toISOString().slice(0,10) + ".csv");
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+            // Status Sistem & SD
+            document.getElementById('sys-status').innerText = "System Online";
+            document.getElementById('sys-status').className = "badge on";
+            document.getElementById('sd-status').innerText = data.sd_st ? "SD: Ready" : "SD: Error";
+            document.getElementById('sd-status').className = data.sd_st ? "badge on" : "badge off";
+
+            // Status Indikator Relay
+            updateStatus('st-lamp', data.l_st);
+            updateStatus('st-exh', data.e_st);
+            updateStatus('st-mist', data.m_st);
+            updateStatus('st-motor', data.r_st);
+
+            // Update Grafik
+            const now = new Date().toLocaleTimeString('id-ID', { hour12: false });
+            if (liveChart.data.labels.length > 10) {
+                liveChart.data.labels.shift();
+                liveChart.data.datasets[0].data.shift();
+                liveChart.data.datasets[1].data.shift();
+            }
+            liveChart.data.labels.push(now);
+            liveChart.data.datasets[0].data.push(data.t);
+            liveChart.data.datasets[1].data.push(data.h);
+            liveChart.chart.update();
+
+            // Tambah ke Tabel Log (Hanya 5 terakhir)
+            updateTable(now, data.t, data.h, ldrVal, data.r_st);
+        }
+    });
+
+    function updateStatus(id, state) {
+        const el = document.getElementById(id);
+        if (state == 1 || state === true) {
+            el.innerText = "ON";
+            el.className = "badge on";
+        } else {
+            el.innerText = "OFF";
+            el.className = "badge off";
+        }
+    }
+
+    const logs = [];
+    function updateTable(time, t, h, l, motor) {
+        const tableBody = document.getElementById('log-body');
+        const motorText = motor ? '<span class="dot-on indicator-dot"></span>Running' : '<span class="dot-off indicator-dot"></span>Stopped';
+        
+        logs.unshift({ time, t, h, l, motorText });
+        if (logs.length > 5) logs.pop();
+
+        tableBody.innerHTML = logs.map(log => `
+            <tr>
+                <td>${log.time}</td>
+                <td>${log.t.toFixed(1)}°C</td>
+                <td>${log.h.toFixed(0)}%</td>
+                <td>${log.l} Lux</td>
+                <td>${log.motorText}</td>
+            </tr>
+        `).join('');
     }
 </script>
+
 </body>
 </html>
