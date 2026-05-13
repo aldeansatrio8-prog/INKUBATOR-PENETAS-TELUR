@@ -2,654 +2,265 @@
 <html lang="id">
 <head>
 <meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Nexus Commander V5.0 — Smart Inkubator Dashboard</title>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Smart Inkubator Dashboard</title>
+
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com"></script>
 
 <!-- Fonts -->
-<link rel="preconnect" href="https://fonts.googleapis.com"/>
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&family=Rajdhani:wght@300;400;600&display=swap" rel="stylesheet"/>
-
-<!-- Chart.js -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=JetBrains+Mono:wght@300;400;600&display=swap" rel="stylesheet"/>
 
 <!-- Firebase v8 -->
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
 <!-- SheetJS -->
 <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
 
+<script>
+tailwind.config = {
+  theme: {
+    extend: {
+      fontFamily: {
+        hud:  ['Orbitron', 'monospace'],
+        mono: ['JetBrains Mono', 'monospace'],
+      },
+      colors: {
+        void:   '#04070f',
+        panel:  '#080d1a',
+        card:   '#0c1220',
+        border: '#1a2840',
+        cyan:   '#00d4ff',
+        teal:   '#00ffbb',
+        amber:  '#ffaa00',
+        rose:   '#ff3d6b',
+        green:  '#00ff88',
+        purple: '#9d4edd',
+      }
+    }
+  }
+}
+</script>
+
 <style>
-/* ═══════════════════════════════════════════
-   RESET & BASE
-═══════════════════════════════════════════ */
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-:root {
-  --bg-void:     #050810;
-  --bg-panel:    #0a0f1e;
-  --bg-card:     #0d1428;
-  --bg-card2:    #111933;
-  --border:      rgba(0, 200, 255, 0.15);
-  --border-hot:  rgba(0, 200, 255, 0.5);
-  --cyan:        #00c8ff;
-  --cyan-dim:    rgba(0, 200, 255, 0.6);
-  --teal:        #00ffcc;
-  --amber:       #ffaa00;
-  --rose:        #ff4466;
-  --green:       #00ff88;
-  --purple:      #aa44ff;
-  --text-primary:#e8f4ff;
-  --text-sec:    #8899bb;
-  --text-dim:    #4455aa;
-  --glow-cyan:   0 0 20px rgba(0, 200, 255, 0.4);
-  --glow-teal:   0 0 20px rgba(0, 255, 204, 0.4);
-  --glow-amber:  0 0 20px rgba(255, 170, 0, 0.4);
-  --font-hud:    'Orbitron', monospace;
-  --font-mono:   'Share Tech Mono', monospace;
-  --font-body:   'Rajdhani', sans-serif;
-  --r:           8px;
-}
-
-html { font-size: 16px; scroll-behavior: smooth; }
-
-body {
-  background: var(--bg-void);
-  color: var(--text-primary);
-  font-family: var(--font-body);
-  min-height: 100vh;
-  overflow-x: hidden;
-}
-
-/* Animated grid background */
-body::before {
-  content: '';
-  position: fixed; inset: 0;
-  background-image:
-    linear-gradient(rgba(0,200,255,0.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(0,200,255,0.03) 1px, transparent 1px);
-  background-size: 40px 40px;
-  pointer-events: none;
-  z-index: 0;
-}
-
-body::after {
-  content: '';
-  position: fixed; inset: 0;
-  background: radial-gradient(ellipse 80% 60% at 50% 0%, rgba(0,60,100,0.3) 0%, transparent 70%);
-  pointer-events: none;
-  z-index: 0;
-}
-
-/* ═══════════════════════════════════════════
-   LAYOUT
-═══════════════════════════════════════════ */
-.wrapper { position: relative; z-index: 1; max-width: 1440px; margin: 0 auto; padding: 20px 24px 60px; }
-
-/* ═══════════════════════════════════════════
-   HEADER / HUD
-═══════════════════════════════════════════ */
-.hud-header {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 20px 28px;
-  border: 1px solid var(--border-hot);
-  border-radius: var(--r);
-  background: linear-gradient(135deg, rgba(0,200,255,0.05) 0%, rgba(0,10,30,0.8) 100%);
-  backdrop-filter: blur(8px);
-  margin-bottom: 28px;
-  position: relative;
-  overflow: hidden;
-}
-
-.hud-header::before {
-  content: '';
-  position: absolute;
-  top: -1px; left: 10%; right: 10%; height: 2px;
-  background: linear-gradient(90deg, transparent, var(--cyan), transparent);
-  animation: scanLine 3s ease-in-out infinite;
-}
-
-@keyframes scanLine {
-  0%,100% { opacity: 0; left: 5%; right: 95%; }
-  50% { opacity: 1; left: 5%; right: 5%; }
-}
-
-.logo-area { display: flex; flex-direction: column; }
-
-.logo-title {
-  font-family: var(--font-hud);
-  font-size: clamp(1.1rem, 2.5vw, 1.7rem);
-  font-weight: 900;
-  letter-spacing: 0.12em;
-  color: var(--cyan);
-  text-shadow: var(--glow-cyan);
-}
-
-.logo-sub {
-  font-family: var(--font-mono);
-  font-size: 0.72rem;
-  color: var(--text-dim);
-  letter-spacing: 0.2em;
-  margin-top: 3px;
-}
-
-.hud-right {
-  display: flex; flex-direction: column; align-items: flex-end; gap: 6px;
-}
-
-.live-badge {
-  display: flex; align-items: center; gap: 8px;
-  font-family: var(--font-mono); font-size: 0.75rem;
-  color: var(--green);
-  letter-spacing: 0.15em;
-}
-
-.pulse-dot {
-  width: 8px; height: 8px; border-radius: 50%;
-  background: var(--green);
-  box-shadow: 0 0 12px var(--green);
-  animation: pulseDot 1.4s ease-in-out infinite;
-}
-
-@keyframes pulseDot {
-  0%,100% { transform: scale(1); opacity: 1; }
-  50% { transform: scale(1.5); opacity: 0.5; }
-}
-
-#clock-display {
-  font-family: var(--font-mono);
-  font-size: 0.82rem;
-  color: var(--cyan-dim);
-  letter-spacing: 0.1em;
-}
-
-/* ═══════════════════════════════════════════
-   SECTION TITLES
-═══════════════════════════════════════════ */
-.section-title {
-  font-family: var(--font-hud);
-  font-size: 0.7rem;
-  letter-spacing: 0.25em;
-  color: var(--text-dim);
-  text-transform: uppercase;
-  margin-bottom: 16px;
-  display: flex; align-items: center; gap: 12px;
-}
-.section-title::after {
-  content: ''; flex: 1; height: 1px;
-  background: linear-gradient(90deg, var(--border-hot), transparent);
-}
-
-/* ═══════════════════════════════════════════
-   SENSOR CARDS
-═══════════════════════════════════════════ */
-.cards-row {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 20px;
-  margin-bottom: 28px;
-}
-
-.sensor-card {
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: var(--r);
-  padding: 24px 28px;
-  position: relative;
-  overflow: hidden;
-  transition: border-color 0.3s, box-shadow 0.3s;
-  cursor: default;
-}
-
-.sensor-card:hover {
-  border-color: var(--border-hot);
-  box-shadow: var(--glow-cyan), inset 0 0 30px rgba(0,200,255,0.03);
-}
-
-.sensor-card::before {
-  content: '';
-  position: absolute;
-  top: 0; left: 0; right: 0; height: 2px;
-  border-radius: var(--r) var(--r) 0 0;
-}
-
-.card-temp::before  { background: linear-gradient(90deg, var(--rose), var(--amber)); }
-.card-humi::before  { background: linear-gradient(90deg, var(--cyan), var(--teal)); }
-.card-light::before { background: linear-gradient(90deg, var(--amber), var(--purple)); }
-
-.card-icon {
-  font-size: 2rem;
-  margin-bottom: 12px;
-  display: block;
-}
-
-.card-label {
-  font-family: var(--font-mono);
-  font-size: 0.65rem;
-  letter-spacing: 0.25em;
-  color: var(--text-dim);
-  text-transform: uppercase;
-  margin-bottom: 8px;
-}
-
-.card-value {
-  font-family: var(--font-hud);
-  font-size: clamp(2rem, 5vw, 3rem);
-  font-weight: 700;
-  line-height: 1;
-}
-
-.card-unit {
-  font-family: var(--font-mono);
-  font-size: 0.85rem;
-  color: var(--text-sec);
-  margin-left: 4px;
-}
-
-.card-temp  .card-value { color: var(--amber); text-shadow: var(--glow-amber); }
-.card-humi  .card-value { color: var(--cyan);  text-shadow: var(--glow-cyan); }
-.card-light .card-value { color: var(--purple); text-shadow: 0 0 20px rgba(170,68,255,0.4); }
-
-.card-bar-wrap {
-  margin-top: 16px;
-  height: 4px;
-  background: rgba(255,255,255,0.06);
-  border-radius: 2px;
-  overflow: hidden;
-}
-
-.card-bar {
-  height: 100%;
-  border-radius: 2px;
-  transition: width 0.8s ease;
-}
-
-.card-temp  .card-bar { background: linear-gradient(90deg, var(--amber), var(--rose)); }
-.card-humi  .card-bar { background: linear-gradient(90deg, var(--cyan), var(--teal)); }
-.card-light .card-bar { background: linear-gradient(90deg, var(--purple), var(--amber)); }
-
-/* ═══════════════════════════════════════════
-   RELAY STATUS
-═══════════════════════════════════════════ */
-.relay-row {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 16px;
-  margin-bottom: 28px;
-}
-
-.relay-card {
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: var(--r);
-  padding: 18px 20px;
-  display: flex; align-items: center; gap: 16px;
-  transition: border-color 0.3s;
-}
-
-.relay-card.active {
-  border-color: rgba(0,255,136,0.4);
-  background: rgba(0,255,136,0.04);
-}
-
-.relay-dot {
-  width: 14px; height: 14px;
-  border-radius: 50%;
-  background: var(--rose);
-  box-shadow: 0 0 8px var(--rose);
-  flex-shrink: 0;
-  transition: all 0.4s;
-}
-
-.relay-dot.on {
-  background: var(--green);
-  box-shadow: 0 0 14px var(--green), 0 0 30px rgba(0,255,136,0.3);
-  animation: pulseDot 1.4s ease-in-out infinite;
-}
-
-.relay-info { flex: 1; min-width: 0; }
-
-.relay-name {
-  font-family: var(--font-mono);
-  font-size: 0.68rem;
-  letter-spacing: 0.2em;
-  color: var(--text-dim);
-  text-transform: uppercase;
-}
-
-.relay-status {
-  font-family: var(--font-hud);
-  font-size: 1rem;
-  font-weight: 700;
-  margin-top: 4px;
-  color: var(--rose);
-  transition: color 0.4s;
-}
-
-.relay-status.on { color: var(--green); }
-
-/* ═══════════════════════════════════════════
-   CHART
-═══════════════════════════════════════════ */
-.chart-panel {
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: var(--r);
-  padding: 24px;
-  margin-bottom: 28px;
-}
-
-.chart-head {
-  display: flex; justify-content: space-between; align-items: center;
-  margin-bottom: 20px;
-}
-
-.chart-title {
-  font-family: var(--font-hud);
-  font-size: 0.75rem;
-  letter-spacing: 0.18em;
-  color: var(--text-sec);
-}
-
-.chart-legend {
-  display: flex; gap: 20px;
-}
-
-.legend-item {
-  display: flex; align-items: center; gap: 6px;
-  font-family: var(--font-mono); font-size: 0.68rem;
-  color: var(--text-sec); letter-spacing: 0.1em;
-}
-
-.legend-dot {
-  width: 10px; height: 3px; border-radius: 2px;
-}
-
-canvas#trendChart { width: 100% !important; height: 260px !important; }
-
-/* ═══════════════════════════════════════════
-   DATA TABLE + DOWNLOAD
-═══════════════════════════════════════════ */
-.table-panel {
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: var(--r);
-  padding: 24px;
-  margin-bottom: 28px;
-}
-
-.table-head {
-  display: flex; justify-content: space-between; align-items: center;
-  margin-bottom: 20px; flex-wrap: wrap; gap: 12px;
-}
-
-.btn-download {
-  display: flex; align-items: center; gap: 8px;
-  background: linear-gradient(135deg, #1a6b3a, #0d4224);
-  border: 1px solid rgba(0,255,136,0.35);
-  color: var(--green);
-  font-family: var(--font-hud);
-  font-size: 0.68rem;
-  letter-spacing: 0.15em;
-  padding: 10px 20px;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: all 0.25s;
-  text-transform: uppercase;
-  white-space: nowrap;
-}
-
-.btn-download:hover {
-  background: linear-gradient(135deg, #1f8045, #10512c);
-  box-shadow: var(--glow-teal);
-  transform: translateY(-1px);
-}
-
-.btn-download svg { width: 14px; height: 14px; }
-
-.data-table-wrap {
-  overflow-x: auto;
-  max-height: 380px;
-  overflow-y: auto;
-}
-
-.data-table-wrap::-webkit-scrollbar { width: 5px; height: 5px; }
-.data-table-wrap::-webkit-scrollbar-track { background: var(--bg-void); }
-.data-table-wrap::-webkit-scrollbar-thumb { background: var(--border-hot); border-radius: 3px; }
-
-table.data-table {
-  width: 100%; border-collapse: collapse;
-  font-family: var(--font-mono); font-size: 0.78rem;
-}
-
-table.data-table th {
-  background: rgba(0,200,255,0.08);
-  color: var(--cyan);
-  font-size: 0.62rem; letter-spacing: 0.2em;
-  text-transform: uppercase;
-  padding: 10px 14px; text-align: left;
-  border-bottom: 1px solid var(--border-hot);
-  position: sticky; top: 0; z-index: 2;
-}
-
-table.data-table td {
-  padding: 9px 14px;
-  border-bottom: 1px solid rgba(255,255,255,0.04);
-  color: var(--text-sec);
-  transition: background 0.2s;
-}
-
-table.data-table tr:hover td {
-  background: rgba(0,200,255,0.04);
-  color: var(--text-primary);
-}
-
-table.data-table .td-no { color: var(--text-dim); width: 40px; }
-table.data-table .td-suhu { color: var(--amber); }
-table.data-table .td-humi { color: var(--cyan); }
-
-#tbl-empty {
-  text-align: center;
-  padding: 40px 0;
-  color: var(--text-dim);
-  font-family: var(--font-mono);
-  font-size: 0.8rem;
-  letter-spacing: 0.15em;
-}
-
-/* ═══════════════════════════════════════════
-   FOOTER
-═══════════════════════════════════════════ */
-.footer {
-  text-align: center;
-  font-family: var(--font-mono);
-  font-size: 0.65rem;
-  letter-spacing: 0.15em;
-  color: var(--text-dim);
-  padding-top: 20px;
-  border-top: 1px solid var(--border);
-}
-
-/* ═══════════════════════════════════════════
-   CONNECTION STATUS OVERLAY
-═══════════════════════════════════════════ */
-#conn-status {
-  display: inline-flex; align-items: center; gap: 6px;
-  font-family: var(--font-mono); font-size: 0.68rem;
-  color: var(--amber); letter-spacing: 0.1em;
-}
-
-#conn-status.connected { color: var(--green); }
-
-/* ═══════════════════════════════════════════
-   LAST UPDATE
-═══════════════════════════════════════════ */
-#last-update {
-  font-family: var(--font-mono); font-size: 0.68rem;
-  color: var(--text-dim); letter-spacing: 0.08em;
-  margin-top: 4px;
-}
-
-/* ═══════════════════════════════════════════
-   RESPONSIVE
-═══════════════════════════════════════════ */
-@media (max-width: 600px) {
-  .hud-header { flex-direction: column; align-items: flex-start; gap: 14px; }
-  .hud-right  { align-items: flex-start; }
-  .cards-row  { grid-template-columns: 1fr 1fr; }
-  .relay-row  { grid-template-columns: 1fr 1fr; }
-  .table-head { flex-direction: column; }
-}
+  body { background: #04070f; font-family: 'JetBrains Mono', monospace; }
+
+  /* Grid background */
+  body::before {
+    content: '';
+    position: fixed; inset: 0; pointer-events: none; z-index: 0;
+    background-image:
+      linear-gradient(rgba(0,212,255,.025) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,212,255,.025) 1px, transparent 1px);
+    background-size: 48px 48px;
+  }
+
+  /* Glow top radial */
+  body::after {
+    content: '';
+    position: fixed; inset: 0; pointer-events: none; z-index: 0;
+    background: radial-gradient(ellipse 70% 40% at 50% 0%, rgba(0,80,120,.35), transparent 70%);
+  }
+
+  .z1 { position: relative; z-index: 1; }
+
+  /* Scan line animation */
+  @keyframes scan { 0%,100%{opacity:0;left:5%;right:95%} 50%{opacity:1;left:5%;right:5%} }
+  .scan::before {
+    content:''; position:absolute; top:-1px; left:10%; right:10%; height:2px;
+    background: linear-gradient(90deg,transparent,#00d4ff,transparent);
+    animation: scan 3s ease-in-out infinite;
+  }
+
+  /* Pulse */
+  @keyframes pulse-dot { 0%,100%{transform:scale(1);opacity:1} 50%{transform:scale(1.6);opacity:.4} }
+  .pulse { animation: pulse-dot 1.4s ease-in-out infinite; }
+
+  /* Glow text */
+  .glow-cyan  { text-shadow: 0 0 16px rgba(0,212,255,.7); }
+  .glow-amber { text-shadow: 0 0 16px rgba(255,170,0,.7); }
+  .glow-teal  { text-shadow: 0 0 16px rgba(0,255,187,.7); }
+  .glow-rose  { text-shadow: 0 0 16px rgba(255,61,107,.7); }
+
+  /* Card base */
+  .card {
+    background: #0c1220;
+    border: 1px solid #1a2840;
+    border-radius: 10px;
+    transition: border-color .3s, box-shadow .3s;
+  }
+  .card:hover { border-color: rgba(0,212,255,.4); box-shadow: 0 0 24px rgba(0,212,255,.08); }
+
+  /* Status badge */
+  .badge-on  { background: rgba(0,255,136,.1); border-color: rgba(0,255,136,.4); color: #00ff88; }
+  .badge-off { background: rgba(255,61,107,.1); border-color: rgba(255,61,107,.3); color: #ff3d6b; }
+
+  /* Table */
+  .tbl thead th { background: rgba(0,212,255,.07); color: #00d4ff; font-size: .65rem; letter-spacing: .2em; text-transform: uppercase; }
+  .tbl tbody tr:hover td { background: rgba(0,212,255,.04); }
+  .tbl td, .tbl th { padding: 9px 14px; border-bottom: 1px solid #0f1c30; }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width:5px; height:5px; }
+  ::-webkit-scrollbar-track { background:#04070f; }
+  ::-webkit-scrollbar-thumb { background:#1a2840; border-radius:3px; }
+  ::-webkit-scrollbar-thumb:hover { background:#00d4ff55; }
+
+  /* Progress bar */
+  .bar-track { height:4px; background:rgba(255,255,255,.06); border-radius:2px; overflow:hidden; margin-top:14px; }
+  .bar-fill  { height:100%; border-radius:2px; transition: width .8s ease; }
 </style>
 </head>
-<body>
-<div class="wrapper">
+<body class="min-h-screen text-slate-200">
+<div class="z1 max-w-7xl mx-auto px-4 py-6 pb-16">
 
-  <!-- ── HEADER HUD ─────────────────────────────────────── -->
-  <header class="hud-header">
-    <div class="logo-area">
-      <div class="logo-title">🥚 NEXUS COMMANDER V5.0</div>
-      <div class="logo-sub">SMART INCUBATOR MONITORING SYSTEM</div>
+  <!-- ════ HEADER ════════════════════════════════════════════ -->
+  <header class="card scan relative flex flex-wrap items-center justify-between gap-4 px-6 py-4 mb-7"
+          style="border-color:rgba(0,212,255,.4);">
+    <div>
+      <h1 class="font-hud text-xl md:text-2xl font-black tracking-widest text-cyan glow-cyan">
+        🥚 SMART INKUBATOR
+      </h1>
+      <p class="text-xs tracking-[.22em] text-slate-500 mt-1">REAL-TIME MONITORING DASHBOARD</p>
     </div>
-    <div class="hud-right">
-      <div class="live-badge">
-        <div class="pulse-dot"></div>
-        <span>REALTIME LINK</span>
-        &nbsp;|&nbsp;
-        <span id="conn-status">⏳ CONNECTING...</span>
+    <div class="flex flex-col items-end gap-1">
+      <div class="flex items-center gap-2 text-xs tracking-widest">
+        <div class="w-2 h-2 rounded-full bg-green pulse"></div>
+        <span class="text-green font-mono">LIVE</span>
+        <span class="text-slate-600">|</span>
+        <span id="conn-status" class="text-amber font-mono">⏳ CONNECTING</span>
       </div>
-      <div id="clock-display">--:--:-- WIB</div>
-      <div id="last-update">Last update: —</div>
+      <div id="clock" class="text-xs text-slate-500 font-mono tracking-wider"></div>
+      <div id="last-upd" class="text-xs text-slate-600 font-mono">Last update: —</div>
     </div>
   </header>
 
-  <!-- ── SENSOR CARDS ───────────────────────────────────── -->
-  <div class="section-title">SENSOR READINGS</div>
-  <div class="cards-row">
+  <!-- ════ SENSOR CARDS ══════════════════════════════════════ -->
+  <p class="text-xs tracking-[.25em] text-slate-600 uppercase mb-3 font-hud">▸ Sensor Readings</p>
+  <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-7">
 
-    <div class="sensor-card card-temp">
-      <span class="card-icon">🌡️</span>
-      <div class="card-label">Temperatur</div>
-      <div>
-        <span class="card-value" id="val-suhu">—</span>
-        <span class="card-unit">°C</span>
+    <!-- Suhu -->
+    <div class="card px-6 py-5" style="border-top:2px solid #ffaa00;">
+      <p class="text-[.6rem] tracking-[.25em] text-slate-500 uppercase mb-2">🌡 Temperatur</p>
+      <div class="flex items-end gap-1">
+        <span id="val-suhu" class="font-hud text-5xl font-bold text-amber glow-amber">—</span>
+        <span class="text-slate-400 mb-1 text-sm">°C</span>
       </div>
-      <div class="card-bar-wrap"><div class="card-bar" id="bar-suhu" style="width:0%"></div></div>
+      <div class="bar-track"><div id="bar-suhu" class="bar-fill" style="width:0%;background:linear-gradient(90deg,#ffaa00,#ff3d6b)"></div></div>
     </div>
 
-    <div class="sensor-card card-humi">
-      <span class="card-icon">💧</span>
-      <div class="card-label">Kelembapan</div>
-      <div>
-        <span class="card-value" id="val-humi">—</span>
-        <span class="card-unit">%</span>
+    <!-- Humi -->
+    <div class="card px-6 py-5" style="border-top:2px solid #00d4ff;">
+      <p class="text-[.6rem] tracking-[.25em] text-slate-500 uppercase mb-2">💧 Kelembapan</p>
+      <div class="flex items-end gap-1">
+        <span id="val-humi" class="font-hud text-5xl font-bold text-cyan glow-cyan">—</span>
+        <span class="text-slate-400 mb-1 text-sm">%</span>
       </div>
-      <div class="card-bar-wrap"><div class="card-bar" id="bar-humi" style="width:0%"></div></div>
+      <div class="bar-track"><div id="bar-humi" class="bar-fill" style="width:0%;background:linear-gradient(90deg,#00d4ff,#00ffbb)"></div></div>
     </div>
 
-    <div class="sensor-card card-light">
-      <span class="card-icon">☀️</span>
-      <div class="card-label">Intensitas Cahaya</div>
-      <div>
-        <span class="card-value" id="val-ldr">—</span>
-        <span class="card-unit">ADC</span>
+    <!-- Cahaya -->
+    <div class="card px-6 py-5" style="border-top:2px solid #9d4edd;">
+      <p class="text-[.6rem] tracking-[.25em] text-slate-500 uppercase mb-2">☀️ Intensitas Cahaya</p>
+      <div class="flex items-end gap-1">
+        <span id="val-ldr" class="font-hud text-5xl font-bold text-purple-400" style="text-shadow:0 0 16px rgba(157,78,221,.7)">—</span>
+        <span class="text-slate-400 mb-1 text-sm">ADC</span>
       </div>
-      <div class="card-bar-wrap"><div class="card-bar" id="bar-ldr" style="width:0%"></div></div>
-    </div>
-
-  </div>
-
-  <!-- ── RELAY STATUS ───────────────────────────────────── -->
-  <div class="section-title">STATUS PERANGKAT</div>
-  <div class="relay-row">
-
-    <div class="relay-card" id="rc-lampu">
-      <div class="relay-dot" id="dot-lampu"></div>
-      <div class="relay-info">
-        <div class="relay-name">💡 Lampu Pemanas</div>
-        <div class="relay-status" id="st-lampu">OFF</div>
-      </div>
-    </div>
-
-    <div class="relay-card" id="rc-mist">
-      <div class="relay-dot" id="dot-mist"></div>
-      <div class="relay-info">
-        <div class="relay-name">🌫️ Mist / Exhaust</div>
-        <div class="relay-status" id="st-mist">OFF</div>
-      </div>
-    </div>
-
-    <div class="relay-card" id="rc-motor">
-      <div class="relay-dot" id="dot-motor"></div>
-      <div class="relay-info">
-        <div class="relay-name">⚙️ Motor Rak Telur</div>
-        <div class="relay-status" id="st-motor">OFF</div>
-      </div>
+      <div class="bar-track"><div id="bar-ldr" class="bar-fill" style="width:0%;background:linear-gradient(90deg,#9d4edd,#ffaa00)"></div></div>
     </div>
 
   </div>
 
-  <!-- ── CHART ──────────────────────────────────────────── -->
-  <div class="chart-panel">
-    <div class="chart-head">
-      <div class="chart-title">TREN SUHU & KELEMBAPAN (LIVE)</div>
-      <div class="chart-legend">
-        <div class="legend-item"><div class="legend-dot" style="background:var(--amber)"></div>Suhu °C</div>
-        <div class="legend-item"><div class="legend-dot" style="background:var(--cyan)"></div>Humi %</div>
+  <!-- ════ STATUS BADGE ══════════════════════════════════════ -->
+  <p class="text-xs tracking-[.25em] text-slate-600 uppercase mb-3 font-hud">▸ Status Perangkat</p>
+  <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-7">
+
+    <div class="card px-5 py-4 flex items-center gap-4">
+      <div id="dot-lampu" class="w-3 h-3 rounded-full bg-rose-500 shadow-[0_0_10px_#ff3d6b] transition-all duration-500"></div>
+      <div>
+        <p class="text-[.6rem] tracking-[.2em] text-slate-500 uppercase">💡 Lampu Pemanas</p>
+        <p id="badge-lampu" class="font-hud text-lg font-bold mt-1 text-rose glow-rose">OFF</p>
       </div>
     </div>
-    <canvas id="trendChart"></canvas>
+
+    <div class="card px-5 py-4 flex items-center gap-4">
+      <div id="dot-motor" class="w-3 h-3 rounded-full bg-rose-500 shadow-[0_0_10px_#ff3d6b] transition-all duration-500"></div>
+      <div>
+        <p class="text-[.6rem] tracking-[.2em] text-slate-500 uppercase">⚙️ Motor Rak</p>
+        <p id="badge-motor" class="font-hud text-lg font-bold mt-1 text-rose glow-rose">IDLE</p>
+      </div>
+    </div>
+
+    <div class="card px-5 py-4 flex items-center gap-4">
+      <div id="dot-mist" class="w-3 h-3 rounded-full bg-rose-500 shadow-[0_0_10px_#ff3d6b] transition-all duration-500"></div>
+      <div>
+        <p class="text-[.6rem] tracking-[.2em] text-slate-500 uppercase">🌫 Mist / Exhaust</p>
+        <p id="badge-mist" class="font-hud text-lg font-bold mt-1 text-rose glow-rose">OFF</p>
+      </div>
+    </div>
+
   </div>
 
-  <!-- ── DATA TABLE ─────────────────────────────────────── -->
-  <div class="table-panel">
-    <div class="table-head">
-      <div class="section-title" style="margin-bottom:0">DATA LOG HISTORY</div>
-      <button class="btn-download" onclick="downloadExcel()">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+  <!-- ════ CHART ═════════════════════════════════════════════ -->
+  <p class="text-xs tracking-[.25em] text-slate-600 uppercase mb-3 font-hud">▸ Tren 10 Data Terakhir</p>
+  <div class="card px-6 py-5 mb-7">
+    <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
+      <span class="font-hud text-xs tracking-widest text-slate-400">SUHU & KELEMBAPAN (LIVE)</span>
+      <div class="flex gap-5 text-xs font-mono text-slate-500">
+        <span class="flex items-center gap-2"><span class="inline-block w-6 h-0.5 bg-amber rounded"></span>Suhu °C</span>
+        <span class="flex items-center gap-2"><span class="inline-block w-6 h-0.5 bg-cyan rounded"></span>Humi %</span>
+      </div>
+    </div>
+    <canvas id="chart" style="height:240px;width:100%"></canvas>
+  </div>
+
+  <!-- ════ DATA TABLE ════════════════════════════════════════ -->
+  <div class="card px-6 py-5">
+    <div class="flex flex-wrap items-center justify-between gap-3 mb-5">
+      <p class="font-hud text-xs tracking-[.25em] text-slate-400 uppercase">▸ Data Log History</p>
+      <button onclick="exportExcel()"
+        class="flex items-center gap-2 px-4 py-2 rounded-lg border text-xs font-hud tracking-widest uppercase transition-all duration-200
+               bg-emerald-950 border-emerald-700 text-green hover:bg-emerald-900 hover:shadow-[0_0_16px_rgba(0,255,136,.3)]">
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
           <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
           <polyline points="7 10 12 15 17 10"/>
           <line x1="12" y1="15" x2="12" y2="3"/>
         </svg>
-        Download Data Log (.xlsx)
+        Export Excel (.xlsx)
       </button>
     </div>
 
-    <div class="data-table-wrap">
-      <table class="data-table">
+    <div class="overflow-auto max-h-80">
+      <table class="tbl w-full text-xs font-mono">
         <thead>
           <tr>
-            <th class="td-no">No</th>
-            <th>Waktu (Timestamp)</th>
-            <th>Suhu (°C)</th>
-            <th>Kelembapan (%)</th>
-            <th>Cahaya (ADC)</th>
-            <th>Lampu</th>
-            <th>Mist</th>
-            <th>Motor</th>
+            <th class="text-left">No</th>
+            <th class="text-left">Waktu</th>
+            <th class="text-left">Suhu (°C)</th>
+            <th class="text-left">Kelembapan (%)</th>
+            <th class="text-left">Cahaya</th>
+            <th class="text-left">Lampu</th>
+            <th class="text-left">Mist</th>
+            <th class="text-left">Motor</th>
           </tr>
         </thead>
         <tbody id="tbl-body">
-          <tr><td colspan="8" id="tbl-empty">⏳ Memuat data history...</td></tr>
+          <tr><td colspan="8" class="text-center text-slate-600 py-10 tracking-widest">⏳ Memuat data history...</td></tr>
         </tbody>
       </table>
     </div>
   </div>
 
-  <!-- ── FOOTER ─────────────────────────────────────────── -->
-  <footer class="footer">
-    NEXUS COMMANDER V5.0 &nbsp;|&nbsp; SMART INCUBATOR IOT SYSTEM &nbsp;|&nbsp; ESP32 + FIREBASE RTDB
-  </footer>
+</div><!-- /wrapper -->
 
-</div><!-- /.wrapper -->
-
-<!-- ═══════════════════════════════════════════════════════
-     JAVASCRIPT
-═══════════════════════════════════════════════════════ -->
+<!-- ════ SCRIPT ════════════════════════════════════════════════ -->
 <script>
-/* ─── Firebase Config ────────────────────────────────── */
-const firebaseConfig = {
+/* ── Firebase init ──────────────────────────────────────── */
+const fb = firebase.initializeApp({
   apiKey:            "AIzaSyCDz2IvAAzkPbUmY1APGBS1GRpVIOpv5g8",
   authDomain:        "penetas-telur-553a3.firebaseapp.com",
   databaseURL:       "https://penetas-telur-553a3-default-rtdb.asia-southeast1.firebasedatabase.app",
@@ -657,228 +268,182 @@ const firebaseConfig = {
   storageBucket:     "penetas-telur-553a3.firebasestorage.app",
   messagingSenderId: "50887200926",
   appId:             "1:50887200926:web:a134dec8ee163057532b8f"
-};
-
-firebase.initializeApp(firebaseConfig);
+});
 const db = firebase.database();
 
-/* ─── Clock ──────────────────────────────────────────── */
-function updateClock() {
-  const now  = new Date();
-  const wib  = new Date(now.getTime() + (7 * 3600000));
-  const str  = wib.toISOString().replace('T',' ').substring(0,19) + ' WIB';
-  document.getElementById('clock-display').textContent = str;
-}
-setInterval(updateClock, 1000);
-updateClock();
+/* ── Clock WIB ──────────────────────────────────────────── */
+setInterval(() => {
+  const wib = new Date(Date.now() + 7*3600000);
+  document.getElementById('clock').textContent =
+    wib.toISOString().replace('T',' ').substring(0,19) + ' WIB';
+}, 1000);
 
-/* ─── Chart Setup ────────────────────────────────────── */
-const MAX_POINTS = 30;
-const chartLabels = [];
-const dataTemp    = [];
-const dataHumi    = [];
+/* ── Chart setup ────────────────────────────────────────── */
+const MAX_PTS = 10;
+const labels  = [], dTemp = [], dHumi = [];
 
-const ctx = document.getElementById('trendChart').getContext('2d');
-const trendChart = new Chart(ctx, {
+const chart = new Chart(document.getElementById('chart').getContext('2d'), {
   type: 'line',
   data: {
-    labels: chartLabels,
+    labels,
     datasets: [
       {
-        label: 'Suhu (°C)',
-        data: dataTemp,
-        borderColor: '#ffaa00',
-        backgroundColor: 'rgba(255,170,0,0.07)',
-        borderWidth: 2,
-        pointRadius: 2,
-        pointHoverRadius: 5,
-        tension: 0.4,
-        fill: true,
-        yAxisID: 'yTemp'
+        label:'Suhu °C', data:dTemp,
+        borderColor:'#ffaa00', backgroundColor:'rgba(255,170,0,.07)',
+        borderWidth:2, pointRadius:3, tension:.4, fill:true, yAxisID:'yT'
       },
       {
-        label: 'Humi (%)',
-        data: dataHumi,
-        borderColor: '#00c8ff',
-        backgroundColor: 'rgba(0,200,255,0.07)',
-        borderWidth: 2,
-        pointRadius: 2,
-        pointHoverRadius: 5,
-        tension: 0.4,
-        fill: true,
-        yAxisID: 'yHumi'
+        label:'Humi %', data:dHumi,
+        borderColor:'#00d4ff', backgroundColor:'rgba(0,212,255,.07)',
+        borderWidth:2, pointRadius:3, tension:.4, fill:true, yAxisID:'yH'
       }
     ]
   },
   options: {
-    responsive: true,
-    maintainAspectRatio: false,
-    interaction: { mode: 'index', intersect: false },
-    plugins: {
-      legend: { display: false },
-      tooltip: {
-        backgroundColor: 'rgba(10,15,30,0.95)',
-        borderColor: 'rgba(0,200,255,0.3)',
-        borderWidth: 1,
-        titleColor: '#8899bb',
-        bodyColor: '#e8f4ff',
-        titleFont: { family: "'Share Tech Mono', monospace", size: 10 },
-        bodyFont: { family: "'Share Tech Mono', monospace", size: 11 }
+    responsive:true, maintainAspectRatio:false,
+    interaction:{ mode:'index', intersect:false },
+    plugins:{ legend:{ display:false },
+      tooltip:{
+        backgroundColor:'rgba(8,13,26,.95)',
+        borderColor:'rgba(0,212,255,.3)', borderWidth:1,
+        titleColor:'#8899bb', bodyColor:'#e8f4ff',
+        titleFont:{ family:"'JetBrains Mono',monospace", size:10 },
+        bodyFont: { family:"'JetBrains Mono',monospace", size:11 }
       }
     },
-    scales: {
-      x: {
-        ticks: { color: '#4455aa', font: { family: "'Share Tech Mono', monospace", size: 9 }, maxRotation: 0 },
-        grid:  { color: 'rgba(0,200,255,0.05)' }
-      },
-      yTemp: {
-        type: 'linear', position: 'left',
-        ticks: { color: '#ffaa00', font: { family: "'Share Tech Mono', monospace", size: 9 } },
-        grid:  { color: 'rgba(255,170,0,0.06)' }
-      },
-      yHumi: {
-        type: 'linear', position: 'right',
-        ticks: { color: '#00c8ff', font: { family: "'Share Tech Mono', monospace", size: 9 } },
-        grid:  { drawOnChartArea: false }
-      }
+    scales:{
+      x:{ ticks:{ color:'#334155', font:{family:"'JetBrains Mono',monospace",size:9}, maxRotation:0 },
+          grid:{ color:'rgba(0,212,255,.05)' }},
+      yT:{ type:'linear', position:'left',
+           ticks:{ color:'#ffaa00', font:{family:"'JetBrains Mono',monospace",size:9} },
+           grid:{ color:'rgba(255,170,0,.05)' }},
+      yH:{ type:'linear', position:'right',
+           ticks:{ color:'#00d4ff', font:{family:"'JetBrains Mono',monospace",size:9} },
+           grid:{ drawOnChartArea:false }}
     }
   }
 });
 
-function pushChart(suhu, humi, waktu) {
-  const timeStr = waktu ? waktu.substring(11,19) : new Date().toLocaleTimeString('id-ID');
-  chartLabels.push(timeStr);
-  dataTemp.push(parseFloat(suhu) || 0);
-  dataHumi.push(parseFloat(humi) || 0);
-  if (chartLabels.length > MAX_POINTS) {
-    chartLabels.shift(); dataTemp.shift(); dataHumi.shift();
-  }
-  trendChart.update('none');
+function addChartPoint(suhu, humi, waktu) {
+  const t = waktu ? waktu.substring(11,19) : new Date().toLocaleTimeString('id-ID');
+  labels.push(t); dTemp.push(+suhu||0); dHumi.push(+humi||0);
+  if (labels.length > MAX_PTS) { labels.shift(); dTemp.shift(); dHumi.shift(); }
+  chart.update('none');
 }
 
-/* ─── Relay Helper ───────────────────────────────────── */
-function setRelay(id, state) {
-  const isOn = (state === 'ON');
-  const dot  = document.getElementById('dot-' + id);
-  const st   = document.getElementById('st-'  + id);
-  const card = document.getElementById('rc-'  + id);
+/* ── Relay status helper ────────────────────────────────── */
+function setDevice(id, isOn, labelOn, labelOff) {
+  const dot   = document.getElementById('dot-'  + id);
+  const badge = document.getElementById('badge-'+ id);
   if (!dot) return;
-  dot.classList.toggle('on', isOn);
-  st.classList.toggle('on', isOn);
-  st.textContent = isOn ? 'AKTIF' : 'OFF';
-  card.classList.toggle('active', isOn);
+  if (isOn) {
+    dot.style.background   = '#00ff88';
+    dot.style.boxShadow    = '0 0 14px #00ff88, 0 0 28px rgba(0,255,136,.3)';
+    dot.classList.add('pulse');
+    badge.textContent      = labelOn;
+    badge.style.color      = '#00ff88';
+    badge.style.textShadow = '0 0 16px rgba(0,255,136,.7)';
+  } else {
+    dot.style.background   = '#ff3d6b';
+    dot.style.boxShadow    = '0 0 10px #ff3d6b';
+    dot.classList.remove('pulse');
+    badge.textContent      = labelOff;
+    badge.style.color      = '#ff3d6b';
+    badge.style.textShadow = '0 0 16px rgba(255,61,107,.7)';
+  }
 }
 
-/* ─── Live Data Listener ─────────────────────────────── */
+/* ── Live listener ──────────────────────────────────────── */
 db.ref('/inkubator/live').on('value', snap => {
   const d = snap.val();
   if (!d) return;
 
-  // Sensor cards
-  const suhu = parseFloat(d.suhu) || 0;
-  const humi = parseFloat(d.humi) || 0;
-  const ldr  = parseInt(d.ldr)   || 0;
+  const suhu = parseFloat(d.suhu)||0;
+  const humi = parseFloat(d.humi)||0;
+  const ldr  = parseInt(d.ldr)  ||0;
 
   document.getElementById('val-suhu').textContent = suhu.toFixed(1);
   document.getElementById('val-humi').textContent = humi.toFixed(1);
   document.getElementById('val-ldr').textContent  = ldr;
 
-  // Progress bars (suhu: 35–42°C, humi: 0–100%, ldr: 0–4095)
-  document.getElementById('bar-suhu').style.width = Math.min(100, Math.max(0, ((suhu - 30) / 20) * 100)) + '%';
+  document.getElementById('bar-suhu').style.width = Math.min(100, Math.max(0,((suhu-30)/20)*100)) + '%';
   document.getElementById('bar-humi').style.width = Math.min(100, humi) + '%';
-  document.getElementById('bar-ldr').style.width  = Math.min(100, (ldr / 4095) * 100) + '%';
+  document.getElementById('bar-ldr').style.width  = Math.min(100,(ldr/4095)*100) + '%';
 
-  // Relay status
-  setRelay('lampu', d.lampu);
-  setRelay('mist',  d.mist);
-  setRelay('motor', d.motor);
+  setDevice('lampu', d.lampu==='ON', 'ON',  'OFF');
+  setDevice('motor', d.motor==='ON', 'RUN', 'IDLE');
+  setDevice('mist',  d.mist ==='ON', 'ON',  'OFF');
 
-  // Chart
-  pushChart(suhu, humi, d.waktu);
+  addChartPoint(suhu, humi, d.waktu);
 
-  // Status & last update
-  const connEl = document.getElementById('conn-status');
-  connEl.textContent = '🟢 TERHUBUNG';
-  connEl.classList.add('connected');
-
-  const nowStr = new Date().toLocaleTimeString('id-ID');
-  document.getElementById('last-update').textContent = 'Last update: ' + nowStr;
+  document.getElementById('conn-status').textContent = '🟢 TERHUBUNG';
+  document.getElementById('conn-status').style.color = '#00ff88';
+  document.getElementById('last-upd').textContent =
+    'Last update: ' + new Date().toLocaleTimeString('id-ID');
 }, err => {
-  const connEl = document.getElementById('conn-status');
-  connEl.textContent = '🔴 KONEKSI GAGAL';
-  connEl.classList.remove('connected');
-  console.error('[Firebase]', err);
+  document.getElementById('conn-status').textContent = '🔴 GAGAL';
+  document.getElementById('conn-status').style.color = '#ff3d6b';
+  console.error(err);
 });
 
-/* ─── History Listener (for table) ──────────────────── */
-let historyData = [];
+/* ── History listener (tabel) ───────────────────────────── */
+let historyRows = [];
 
 db.ref('/inkubator/history').on('value', snap => {
-  historyData = [];
+  historyRows = [];
   const tbody = document.getElementById('tbl-body');
 
   if (!snap.exists()) {
-    tbody.innerHTML = '<tr><td colspan="8" id="tbl-empty">📭 Belum ada data history.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="8" class="text-center text-slate-600 py-10 tracking-widest">📭 Belum ada data history.</td></tr>';
     return;
   }
 
-  let no = 0;
-  snap.forEach(child => {
-    no++;
-    const d = child.val();
-    historyData.push({ no, key: child.key, ...d });
-  });
+  snap.forEach(c => historyRows.push({ key:c.key, ...c.val() }));
 
-  // Tampilkan dari terbaru ke terlama
-  const sorted = [...historyData].reverse();
-
-  tbody.innerHTML = sorted.map((d, i) => `
-    <tr>
-      <td class="td-no">${historyData.length - i}</td>
-      <td>${d.waktu || d.key || '—'}</td>
-      <td class="td-suhu">${parseFloat(d.suhu).toFixed(1) || '—'}</td>
-      <td class="td-humi">${parseFloat(d.humi).toFixed(1) || '—'}</td>
-      <td>${d.ldr || '—'}</td>
-      <td style="color:${d.lampu==='ON'?'#00ff88':'#ff4466'}">${d.lampu || '—'}</td>
-      <td style="color:${d.mist==='ON'?'#00c8ff':'#ff4466'}">${d.mist  || '—'}</td>
-      <td style="color:${d.motor==='ON'?'#ffaa00':'#ff4466'}">${d.motor || '—'}</td>
-    </tr>
-  `).join('');
+  const sorted = [...historyRows].reverse();
+  tbody.innerHTML = sorted.map((d,i) => {
+    const no = historyRows.length - i;
+    const lampuColor = d.lampu==='ON' ? '#00ff88' : '#ff3d6b';
+    const mistColor  = d.mist ==='ON' ? '#00d4ff' : '#ff3d6b';
+    const motorColor = d.motor==='ON' ? '#ffaa00' : '#ff3d6b';
+    return `<tr>
+      <td class="text-slate-600">${no}</td>
+      <td class="text-slate-400">${d.waktu||d.key||'—'}</td>
+      <td style="color:#ffaa00">${(+d.suhu).toFixed(1)||'—'}</td>
+      <td style="color:#00d4ff">${(+d.humi).toFixed(1)||'—'}</td>
+      <td class="text-slate-400">${d.ldr||'—'}</td>
+      <td style="color:${lampuColor}">${d.lampu||'—'}</td>
+      <td style="color:${mistColor}">${d.mist||'—'}</td>
+      <td style="color:${motorColor}">${d.motor||'—'}</td>
+    </tr>`;
+  }).join('');
 });
 
-/* ─── Download Excel ─────────────────────────────────── */
-function downloadExcel() {
-  if (historyData.length === 0) {
-    alert('⚠️ Belum ada data history untuk diunduh.\nTunggu minimal 30 menit setelah ESP32 terhubung.');
+/* ── Export Excel ───────────────────────────────────────── */
+function exportExcel() {
+  if (!historyRows.length) {
+    alert('⚠️ Belum ada data history.\nTunggu minimal 30 menit setelah ESP32 aktif.');
     return;
   }
-
-  // Buat array rows
-  const rows = historyData.map((d, i) => ({
-    'No'              : i + 1,
-    'Waktu (Timestamp)': d.waktu || d.key || '',
-    'Suhu (°C)'       : parseFloat(d.suhu) || 0,
-    'Kelembapan (%)'  : parseFloat(d.humi) || 0,
-    'Cahaya (ADC)'    : parseInt(d.ldr)    || 0,
-    'Lampu'           : d.lampu  || '',
-    'Mist'            : d.mist   || '',
-    'Motor'           : d.motor  || ''
+  const rows = historyRows.map((d,i) => ({
+    'No'              : i+1,
+    'Waktu'           : d.waktu||d.key||'',
+    'Suhu (°C)'       : +d.suhu||0,
+    'Kelembapan (%)'  : +d.humi||0,
+    'Cahaya (ADC)'    : +d.ldr ||0,
+    'Lampu'           : d.lampu||'',
+    'Mist'            : d.mist ||'',
+    'Motor'           : d.motor||''
   }));
 
   const ws = XLSX.utils.json_to_sheet(rows);
-
-  // Lebar kolom
-  ws['!cols'] = [
-    { wch: 6 }, { wch: 22 }, { wch: 12 }, { wch: 16 },
-    { wch: 14 }, { wch: 8 }, { wch: 8 }, { wch: 8 }
-  ];
+  ws['!cols'] = [{wch:5},{wch:22},{wch:11},{wch:15},{wch:13},{wch:8},{wch:8},{wch:8}];
 
   const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, 'History Inkubator');
+  XLSX.utils.book_append_sheet(wb, ws, 'Log Inkubator');
 
-  // Nama file dengan timestamp
-  const ts = new Date().toISOString().replace(/[:.]/g, '-').substring(0, 19);
-  XLSX.writeFile(wb, `NexusV5_History_${ts}.xlsx`);
+  const ts = new Date().toISOString().replace(/[:.]/g,'-').substring(0,19);
+  XLSX.writeFile(wb, `Inkubator_Log_${ts}.xlsx`);
 }
 </script>
 </body>
