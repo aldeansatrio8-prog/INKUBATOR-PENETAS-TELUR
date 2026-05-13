@@ -1,512 +1,101 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Nexus Commander V5.0 — Smart Inkubator</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
-
-<!-- Firebase SDK v8 -->
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
-<!-- Chart.js -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
-<!-- SheetJS untuk ekspor Excel -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-
-<style>
-/* ─── Reset & Base ─────────────────────────────────────── */
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-
-:root {
-  --bg0:#07090e;
-  --bg1:#0d1117;
-  --bg2:#131920;
-  --bg3:#1a2230;
-  --border:rgba(255,255,255,0.065);
-  --border2:rgba(255,255,255,0.13);
-  --text:#dde3ef;
-  --muted:#4e5a6e;
-  --muted2:#6b7a8e;
-  --cyan:#00e5c0;
-  --cyan2:rgba(0,229,192,0.12);
-  --blue:#3d8ef8;
-  --amber:#f5a623;
-  --red:#f04545;
-  --green:#00e5c0;
-  --r:14px;
-  --ff:'Syne',sans-serif;
-  --fm:'Space Mono',monospace;
-}
-
-html{scroll-behavior:smooth}
-body{background:var(--bg0);color:var(--text);font-family:var(--ff);min-height:100vh;overflow-x:hidden}
-
-/* ─── Grid BG ──────────────────────────────────────────── */
-body::after{
-  content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
-  background-image:
-    linear-gradient(rgba(0,229,192,0.025) 1px,transparent 1px),
-    linear-gradient(90deg,rgba(0,229,192,0.025) 1px,transparent 1px);
-  background-size:48px 48px;
-}
-
-.wrap{position:relative;z-index:1;max-width:1320px;margin:0 auto;padding:1.75rem 1.5rem}
-
-/* ─── Header ───────────────────────────────────────────── */
-.hdr{display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:1rem;margin-bottom:2rem}
-.hdr-left{display:flex;flex-direction:column;gap:3px}
-.eyebrow{font-family:var(--fm);font-size:10px;letter-spacing:.22em;color:var(--cyan);text-transform:uppercase}
-h1{font-size:clamp(1.5rem,3vw,2.1rem);font-weight:800;color:#fff;line-height:1}
-h1 em{color:var(--cyan);font-style:normal}
-.hdr-right{display:flex;align-items:center;gap:.75rem;flex-wrap:wrap}
-
-/* Pill status koneksi */
-.conn-pill{display:flex;align-items:center;gap:8px;background:var(--bg3);border:1px solid var(--border);border-radius:100px;padding:6px 14px;font-family:var(--fm);font-size:11px;color:var(--muted2)}
-.dot{width:8px;height:8px;border-radius:50%;background:var(--green);flex-shrink:0;animation:blink 2s ease-in-out infinite}
-.dot.off{background:var(--red);animation:none}
-@keyframes blink{0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(0,229,192,.45)}50%{opacity:.7;box-shadow:0 0 0 6px rgba(0,229,192,0)}}
-
-/* Tombol Download */
-.btn-dl{display:flex;align-items:center;gap:8px;background:transparent;border:1px solid var(--border2);border-radius:100px;padding:7px 16px;font-family:var(--fm);font-size:11px;color:var(--text);cursor:pointer;transition:background .2s,border-color .2s;white-space:nowrap}
-.btn-dl:hover{background:rgba(255,255,255,.05);border-color:var(--cyan)}
-.btn-dl:active{transform:scale(.97)}
-.btn-dl.loading{opacity:.6;pointer-events:none}
-.btn-dl svg{width:14px;height:14px;flex-shrink:0}
-
-/* ─── Sensor Cards ─────────────────────────────────────── */
-.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:.85rem;margin-bottom:.85rem}
-.card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:1.4rem 1.25rem;position:relative;overflow:hidden;transition:border-color .25s}
-.card:hover{border-color:var(--border2)}
-.card::before{content:'';position:absolute;top:0;left:0;right:0;height:2.5px;border-radius:2px 2px 0 0}
-.card.c-temp::before{background:linear-gradient(90deg,#ff6b6b,#e53935)}
-.card.c-humi::before{background:linear-gradient(90deg,var(--blue),var(--cyan))}
-.card.c-ldr::before {background:linear-gradient(90deg,var(--amber),#ffcd6e)}
-.card-tag{font-family:var(--fm);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-bottom:.9rem;display:flex;align-items:center;gap:5px}
-.card-num{font-family:var(--fm);font-size:2.8rem;font-weight:700;line-height:1;letter-spacing:-2px}
-.card.c-temp .card-num{color:#ff6b6b}
-.card.c-humi .card-num{color:var(--blue)}
-.card.c-ldr  .card-num{color:var(--amber)}
-.card-unit{font-size:1rem;font-weight:400;color:var(--muted2);letter-spacing:0}
-.card-sub{margin-top:.6rem;font-family:var(--fm);font-size:11px;color:var(--muted)}
-
-/* ─── Grid bawah ───────────────────────────────────────── */
-.grid2{display:grid;grid-template-columns:1fr 300px;gap:.85rem;align-items:start}
-@media(max-width:860px){.grid2{grid-template-columns:1fr}}
-
-/* ─── Panel ────────────────────────────────────────────── */
-.panel{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:1.25rem 1.3rem}
-.panel-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;flex-wrap:wrap;gap:.5rem}
-.panel-title{font-size:13px;font-weight:700;color:#fff;letter-spacing:.02em}
-.legend{display:flex;gap:14px;font-family:var(--fm);font-size:10px;color:var(--muted)}
-.ld{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:4px}
-
-/* ─── Chart ────────────────────────────────────────────── */
-.chart-wrap{position:relative;height:220px}
-
-/* ─── Timestamp bar ────────────────────────────────────── */
-.ts-bar{display:flex;justify-content:space-between;align-items:center;margin-top:.75rem;font-family:var(--fm);font-size:10px;color:var(--muted)}
-
-/* ─── Relay list ───────────────────────────────────────── */
-.relay-list{display:flex;flex-direction:column;gap:.6rem;margin-top:.25rem}
-.relay-row{display:flex;align-items:center;justify-content:space-between;padding:.8rem .9rem;background:var(--bg3);border:1px solid var(--border);border-radius:10px;transition:border-color .25s}
-.relay-row.on{border-color:rgba(0,229,192,.28)}
-.relay-info{display:flex;align-items:center;gap:9px}
-.relay-ic{width:30px;height:30px;border-radius:7px;background:var(--bg2);display:flex;align-items:center;justify-content:center;font-size:15px}
-.relay-name{font-size:12px;font-weight:700;color:var(--text)}
-.relay-sub{font-family:var(--fm);font-size:10px;color:var(--muted);margin-top:2px}
-.badge{font-family:var(--fm);font-size:10px;font-weight:700;letter-spacing:.07em;padding:3px 10px;border-radius:100px}
-.badge.on{background:rgba(0,229,192,.1);color:var(--green);border:1px solid rgba(0,229,192,.22)}
-.badge.off{background:rgba(78,90,110,.15);color:var(--muted);border:1px solid var(--border)}
-
-/* ─── Info box ─────────────────────────────────────────── */
-.info-box{margin-top:1rem;padding-top:.9rem;border-top:1px solid var(--border)}
-.info-label{font-family:var(--fm);font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-bottom:.55rem}
-.info-row{display:flex;justify-content:space-between;font-family:var(--fm);font-size:11px;color:var(--muted);padding:3px 0}
-.info-row span:last-child{color:var(--text)}
-
-/* ─── Toast notifikasi ─────────────────────────────────── */
-.toast{position:fixed;bottom:1.5rem;right:1.5rem;z-index:999;background:var(--bg3);border:1px solid var(--border2);border-radius:10px;padding:.75rem 1.1rem;font-family:var(--fm);font-size:12px;color:var(--text);display:none;align-items:center;gap:8px;box-shadow:0 8px 30px rgba(0,0,0,.4);animation:slideUp .3s ease}
-.toast.show{display:flex}
-.toast.ok{border-color:rgba(0,229,192,.3)}
-.toast.err{border-color:rgba(240,69,69,.3);color:var(--red)}
-@keyframes slideUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
-
-/* ─── Skeleton ─────────────────────────────────────────── */
-.sk{display:inline-block;background:linear-gradient(90deg,var(--bg3) 25%,var(--bg2) 50%,var(--bg3) 75%);background-size:200% 100%;animation:sh 1.4s infinite;border-radius:4px;color:transparent;user-select:none}
-@keyframes sh{0%{background-position:200% 0}100%{background-position:-200% 0}}
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nexus Commander V5.0 - Dashboard</title>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.0/xlsx.full.min.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #0f172a; color: #f8fafc; font-family: 'Segoe UI', sans-serif; }
+        .card { background: #1e293b; border: none; border-radius: 15px; transition: 0.3s; color: white; }
+        .status-dot { height: 12px; width: 12px; border-radius: 50%; display: inline-block; }
+        .bg-temp { background: linear-gradient(45deg, #f59e0b, #ef4444); }
+        .bg-humi { background: linear-gradient(45deg, #0ea5e9, #2563eb); }
+        .bg-light { background: linear-gradient(45deg, #10b981, #059669); }
+    </style>
 </head>
 <body>
-<div class="wrap">
-
-  <!-- ── Header ─────────────────────────────────────────── -->
-  <div class="hdr">
-    <div class="hdr-left">
-      <span class="eyebrow">🥚 Smart Incubator Monitoring</span>
-      <h1>Nexus Commander <em>V5.0</em></h1>
-    </div>
-    <div class="hdr-right">
-      <!-- Tombol Download Excel -->
-      <button class="btn-dl" id="btnDl" onclick="downloadExcel()">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M12 15V3m0 12-4-4m4 4 4-4M2 17l.621 2.485A2 2 0 0 0 4.561 21h14.878a2 2 0 0 0 1.94-1.515L22 17"/>
-        </svg>
-        Download Data Log (.xlsx)
-      </button>
-      <!-- Status koneksi -->
-      <div class="conn-pill">
-        <div class="dot off" id="dot"></div>
-        <span id="connTxt">Menghubungkan…</span>
-      </div>
-    </div>
-  </div>
-
-  <!-- ── Sensor Cards ────────────────────────────────────── -->
-  <div class="cards">
-    <div class="card c-temp">
-      <div class="card-tag">🌡 Suhu</div>
-      <div class="card-num" id="vTemp"><span class="sk">00.0</span></div>
-      <div class="card-unit">°C</div>
-      <div class="card-sub" id="sTemp">— memuat…</div>
-    </div>
-    <div class="card c-humi">
-      <div class="card-tag">💧 Kelembapan</div>
-      <div class="card-num" id="vHumi"><span class="sk">00.0</span></div>
-      <div class="card-unit">%</div>
-      <div class="card-sub" id="sHumi">— memuat…</div>
-    </div>
-    <div class="card c-ldr">
-      <div class="card-tag">☀ Cahaya (LDR)</div>
-      <div class="card-num" id="vLdr"><span class="sk">0000</span></div>
-      <div class="card-unit">ADC</div>
-      <div class="card-sub" id="sLdr">— memuat…</div>
-    </div>
-  </div>
-
-  <!-- ── Grid Bawah ─────────────────────────────────────── -->
-  <div class="grid2">
-
-    <!-- Chart Panel -->
-    <div class="panel">
-      <div class="panel-hdr">
-        <div class="panel-title">Tren Real-time Suhu &amp; Kelembapan</div>
-        <div class="legend">
-          <span><span class="ld" style="background:#ff6b6b"></span>Suhu °C</span>
-          <span><span class="ld" style="background:#3d8ef8;border-radius:0"></span>Humi %</span>
+    <div class="container py-5">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2>Nexus Commander V5.0 <span id="conn" class="status-dot bg-danger"></span></h2>
+            <button onclick="downloadExcel()" class="btn btn-success">Download Data Log (.xlsx)</button>
         </div>
-      </div>
-      <div class="chart-wrap">
-        <canvas id="chart" role="img" aria-label="Grafik tren suhu dan kelembapan inkubator secara real-time">Data akan tampil setelah terhubung ke Firebase.</canvas>
-      </div>
-      <div class="ts-bar">
-        <span id="tsLast">● Menunggu data…</span>
-        <span id="tsCount" style="color:var(--muted)">0 titik</span>
-      </div>
+
+        <div class="row g-4 mb-4 text-center">
+            <div class="col-md-4"><div class="card p-4 bg-temp"><h3>Suhu</h3><h1 id="txtTemp">--</h1></div></div>
+            <div class="col-md-4"><div class="card p-4 bg-humi"><h3>Kelembapan</h3><h1 id="txtHumi">--</h1></div></div>
+            <div class="col-md-4"><div class="card p-4 bg-light"><h3>Cahaya</h3><h1 id="txtLDR">--</h1></div></div>
+        </div>
+
+        <div class="card p-4">
+            <canvas id="liveChart" style="max-height: 300px;"></canvas>
+        </div>
     </div>
 
-    <!-- Relay & Info Panel -->
-    <div class="panel">
-      <div class="panel-hdr">
-        <div class="panel-title">Status Perangkat</div>
-      </div>
-      <div class="relay-list">
-        <div class="relay-row" id="rowMotor">
-          <div class="relay-info">
-            <div class="relay-ic">⚙️</div>
-            <div>
-              <div class="relay-name">Motor Rak</div>
-              <div class="relay-sub">Pin 26</div>
-            </div>
-          </div>
-          <span class="badge off" id="bMotor">—</span>
-        </div>
-        <div class="relay-row" id="rowLamp">
-          <div class="relay-info">
-            <div class="relay-ic">💡</div>
-            <div>
-              <div class="relay-name">Lampu Pemanas</div>
-              <div class="relay-sub">Pin 13</div>
-            </div>
-          </div>
-          <span class="badge off" id="bLamp">—</span>
-        </div>
-        <div class="relay-row" id="rowMist">
-          <div class="relay-info">
-            <div class="relay-ic">🌫</div>
-            <div>
-              <div class="relay-name">Mist / Exhaust</div>
-              <div class="relay-sub">Pin 27</div>
-            </div>
-          </div>
-          <span class="badge off" id="bMist">—</span>
-        </div>
-      </div>
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyCDz2IvAAzkPbUmY1APGBS1GRpVIOpv5g8",
+            authDomain: "penetas-telur-553a3.firebaseapp.com",
+            databaseURL: "https://penetas-telur-553a3-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "penetas-telur-553a3",
+            appId: "1:50887200926:web:a134dec8ee163057532b8f"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
 
-      <div class="info-box">
-        <div class="info-label">Parameter Sistem</div>
-        <div class="info-row"><span>Batas suhu lampu</span><span>&lt; 37.5 °C</span></div>
-        <div class="info-row"><span>Batas mist suhu</span><span>&gt; 38.5 °C</span></div>
-        <div class="info-row"><span>Batas mist humi</span><span>&lt; 60 %</span></div>
-        <div class="info-row"><span>Rotasi rak</span><span>1 jam / 10 dtk</span></div>
-        <div class="info-row"><span>Log history</span><span>tiap 30 menit</span></div>
-      </div>
-    </div>
-  </div>
-</div>
+        // Grafik Setup
+        const ctx = document.getElementById('liveChart').getContext('2d');
+        const chart = new Chart(ctx, {
+            type: 'line',
+            data: { labels: [], datasets: [
+                { label: 'Suhu (°C)', borderColor: '#ef4444', data: [], tension: 0.4 },
+                { label: 'Humi (%)', borderColor: '#3b82f6', data: [], tension: 0.4 }
+            ]},
+            options: { responsive: true, scales: { x: { display: false } } }
+        });
 
-<!-- Toast notifikasi -->
-<div class="toast" id="toast"></div>
+        // Update Real-time
+        db.ref('/inkubator/live').on('value', snap => {
+            const data = snap.val();
+            document.getElementById('txtTemp').innerText = data.suhu + "°C";
+            document.getElementById('txtHumi').innerText = data.humi + "%";
+            document.getElementById('txtLDR').innerText = data.ldr;
+            document.getElementById('conn').className = "status-dot bg-success";
 
-<script>
-// ════════════════════════════════════════════════════════════
-//  FIREBASE INIT
-// ════════════════════════════════════════════════════════════
-const FB_CONFIG = {
-  apiKey:            "AIzaSyCDz2IvAAzkPbUmY1APGBS1GRpVIOpv5g8",
-  authDomain:        "penetas-telur-553a3.firebaseapp.com",
-  databaseURL:       "https://penetas-telur-553a3-default-rtdb.asia-southeast1.firebasedatabase.app",
-  projectId:         "penetas-telur-553a3",
-  storageBucket:     "penetas-telur-553a3.firebasestorage.app",
-  messagingSenderId: "50887200926",
-  appId:             "1:50887200926:web:a134dec8ee163057532b8f"
-};
+            // Update Chart
+            const now = new Date().toLocaleTimeString();
+            chart.data.labels.push(now);
+            chart.data.datasets[0].data.push(data.suhu);
+            chart.data.datasets[1].data.push(data.humi);
+            if(chart.data.labels.length > 20) { chart.data.labels.shift(); chart.data.datasets[0].data.shift(); chart.data.datasets[1].data.shift(); }
+            chart.update();
+        });
 
-firebase.initializeApp(FB_CONFIG);
-const db = firebase.database();
+        // Download Excel
+        async function downloadExcel() {
+            const snap = await db.ref('/inkubator/history').once('value');
+            const logs = snap.val();
+            const dataForExcel = [];
+            let i = 1;
 
-// ════════════════════════════════════════════════════════════
-//  CHART.JS SETUP
-// ════════════════════════════════════════════════════════════
-const MAX_PTS = 40;
-const lbls    = [], tArr = [], hArr = [];
+            for (let key in logs) {
+                dataForExcel.push({
+                    No: i++,
+                    Waktu: logs[key].time,
+                    Suhu: logs[key].temp,
+                    Kelembapan: logs[key].humi
+                });
+            }
 
-const chart = new Chart(document.getElementById('chart').getContext('2d'), {
-  type: 'line',
-  data: {
-    labels: lbls,
-    datasets: [
-      {
-        label: 'Suhu °C',
-        data: tArr,
-        borderColor: '#ff6b6b',
-        backgroundColor: 'rgba(255,107,107,0.07)',
-        borderWidth: 1.8,
-        pointRadius: 2.5,
-        pointBackgroundColor: '#ff6b6b',
-        tension: 0.4,
-        fill: true,
-        pointStyle: 'circle',
-        borderDash: []
-      },
-      {
-        label: 'Humi %',
-        data: hArr,
-        borderColor: '#3d8ef8',
-        backgroundColor: 'rgba(61,142,248,0.06)',
-        borderWidth: 1.8,
-        pointRadius: 2.5,
-        pointBackgroundColor: '#3d8ef8',
-        tension: 0.4,
-        fill: true,
-        pointStyle: 'rectRot',
-        borderDash: [5, 4]
-      }
-    ]
-  },
-  options: {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: { display: false },
-      tooltip: {
-        backgroundColor: '#1a2230',
-        borderColor: 'rgba(255,255,255,.09)',
-        borderWidth: 1,
-        titleColor: '#fff',
-        bodyColor: '#6b7a8e',
-        titleFont: { family: 'Space Mono', size: 10 },
-        bodyFont:  { family: 'Space Mono', size: 10 },
-        callbacks: {
-          label: ctx => ' ' + ctx.dataset.label + ': ' + ctx.parsed.y.toFixed(1)
+            const worksheet = XLSX.utils.json_to_sheet(dataForExcel);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "Log History");
+            XLSX.writeFile(workbook, "Nexus_Commander_Log.xlsx");
         }
-      }
-    },
-    scales: {
-      x: {
-        ticks: { color:'#4e5a6e', font:{family:'Space Mono',size:9}, maxRotation:0, autoSkip:true, maxTicksLimit:8 },
-        grid:  { color:'rgba(255,255,255,.035)' }
-      },
-      y: {
-        ticks: { color:'#4e5a6e', font:{family:'Space Mono',size:9}, callback: v => v.toFixed(0) },
-        grid:  { color:'rgba(255,255,255,.035)' },
-        min: 15, max: 90
-      }
-    },
-    animation: { duration: 350 }
-  }
-});
-
-// ════════════════════════════════════════════════════════════
-//  HELPERS
-// ════════════════════════════════════════════════════════════
-function nowStr() {
-  return new Date().toLocaleTimeString('id-ID', {hour:'2-digit',minute:'2-digit',second:'2-digit'});
-}
-
-function setConn(ok) {
-  document.getElementById('dot').className    = ok ? 'dot' : 'dot off';
-  document.getElementById('connTxt').textContent = ok ? 'Live — Terhubung' : 'Terputus';
-}
-
-function setRelay(badgeId, rowId, state) {
-  const on  = (state === 'ON');
-  const b   = document.getElementById(badgeId);
-  const row = document.getElementById(rowId);
-  b.textContent = on ? 'ON' : 'OFF';
-  b.className   = 'badge ' + (on ? 'on' : 'off');
-  row.className = 'relay-row' + (on ? ' on' : '');
-}
-
-function subTemp(t) {
-  if (t < 37.5) return '↓ Di bawah batas — Lampu ON';
-  if (t > 38.5) return '↑ Terlalu panas — Mist aktif';
-  return '✓ Dalam rentang optimal';
-}
-function subHumi(h) {
-  if (h < 60) return '↓ Terlalu kering — Mist aktif';
-  if (h > 80) return '↑ Terlalu lembap';
-  return '✓ Dalam rentang optimal';
-}
-function subLdr(v) {
-  if (v > 3000) return '☀ Sangat Terang';
-  if (v > 1500) return '⟡ Terang';
-  if (v > 500)  return '~ Sedang';
-  return '🌑 Gelap';
-}
-
-function showToast(msg, isErr) {
-  const t = document.getElementById('toast');
-  t.textContent  = msg;
-  t.className    = 'toast show' + (isErr ? ' err' : ' ok');
-  setTimeout(() => t.className = 'toast', 3500);
-}
-
-// ════════════════════════════════════════════════════════════
-//  FIREBASE REALTIME LISTENER — /inkubator/live
-// ════════════════════════════════════════════════════════════
-db.ref('/inkubator/live').on('value',
-  snap => {
-    const d = snap.val();
-    if (!d) { setConn(false); return; }
-    setConn(true);
-
-    const temp = parseFloat(d.suhu) || 0;
-    const humi = parseFloat(d.humi) || 0;
-    const ldr  = parseInt(d.ldr)    || 0;
-
-    document.getElementById('vTemp').textContent = temp.toFixed(1);
-    document.getElementById('vHumi').textContent = humi.toFixed(1);
-    document.getElementById('vLdr').textContent  = ldr;
-
-    document.getElementById('sTemp').textContent = subTemp(temp);
-    document.getElementById('sHumi').textContent = subHumi(humi);
-    document.getElementById('sLdr').textContent  = subLdr(ldr);
-
-    setRelay('bMotor', 'rowMotor', d.relay_motor);
-    setRelay('bLamp',  'rowLamp',  d.relay_lampu);
-    setRelay('bMist',  'rowMist',  d.relay_mist);
-
-    // Tambahkan ke chart
-    const t = nowStr();
-    lbls.push(t);
-    tArr.push(parseFloat(temp.toFixed(2)));
-    hArr.push(parseFloat(humi.toFixed(2)));
-    if (lbls.length > MAX_PTS) { lbls.shift(); tArr.shift(); hArr.shift(); }
-    chart.update();
-
-    document.getElementById('tsLast').textContent  = '● Update: ' + t;
-    document.getElementById('tsCount').textContent = lbls.length + ' titik';
-  },
-  err => {
-    console.error('[Firebase]', err);
-    setConn(false);
-  }
-);
-
-// ════════════════════════════════════════════════════════════
-//  DOWNLOAD EXCEL — Ambil /inkubator/history lalu ekspor .xlsx
-// ════════════════════════════════════════════════════════════
-async function downloadExcel() {
-  const btn = document.getElementById('btnDl');
-  btn.classList.add('loading');
-  btn.textContent = '⏳ Mengambil data…';
-
-  try {
-    const snap = await db.ref('/inkubator/history').once('value');
-    const raw  = snap.val();
-
-    if (!raw) {
-      showToast('⚠ Belum ada data history di Firebase.', true);
-      return;
-    }
-
-    // Konversi objek Firebase (key → entry) ke array baris Excel
-    const rows = [
-      ['No', 'Waktu (WIB)', 'Suhu (°C)', 'Kelembapan (%)', 'LDR', 'Motor', 'Lampu', 'Mist']
-    ];
-
-    let no = 1;
-    Object.values(raw).forEach(entry => {
-      const ts = entry.timestamp
-        ? new Date(entry.timestamp * 1000).toLocaleString('id-ID', {timeZone:'Asia/Jakarta'})
-        : '-';
-      rows.push([
-        no++,
-        ts,
-        parseFloat(entry.suhu)  || 0,
-        parseFloat(entry.humi)  || 0,
-        parseInt(entry.ldr)     || 0,
-        entry.relay_motor || '-',
-        entry.relay_lampu || '-',
-        entry.relay_mist  || '-'
-      ]);
-    });
-
-    // Buat workbook dengan SheetJS
-    const wb  = XLSX.utils.book_new();
-    const ws  = XLSX.utils.aoa_to_sheet(rows);
-
-    // Lebar kolom otomatis
-    ws['!cols'] = [
-      {wch:5},{wch:22},{wch:12},{wch:16},{wch:8},{wch:8},{wch:8},{wch:8}
-    ];
-
-    // Style header baris pertama (bold) — SheetJS CE mendukung basic cell props
-    const headerRange = XLSX.utils.decode_range(ws['!ref']);
-    for (let c = headerRange.s.c; c <= headerRange.e.c; c++) {
-      const addr = XLSX.utils.encode_cell({r:0, c});
-      if (!ws[addr]) continue;
-      ws[addr].s = { font: { bold: true } };
-    }
-
-    XLSX.utils.book_append_sheet(wb, ws, 'Log Inkubator');
-
-    // Nama file dengan timestamp
-    const fileName = 'NexusLog_' + new Date().toISOString().slice(0,10) + '.xlsx';
-    XLSX.writeFile(wb, fileName);
-
-    showToast('✓ ' + (rows.length - 1) + ' data berhasil diunduh!', false);
-
-  } catch(e) {
-    console.error(e);
-    showToast('✗ Gagal mengambil data: ' + e.message, true);
-  } finally {
-    btn.classList.remove('loading');
-    btn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;flex-shrink:0"><path d="M12 15V3m0 12-4-4m4 4 4-4M2 17l.621 2.485A2 2 0 0 0 4.561 21h14.878a2 2 0 0 0 1.94-1.515L22 17"/></svg> Download Data Log (.xlsx)`;
-  }
-}
-</script>
+    </script>
 </body>
 </html>
