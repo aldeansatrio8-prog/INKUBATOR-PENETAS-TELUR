@@ -2,82 +2,263 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <title>NEXUS DASHBOARD V4.8</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NEXUS ULTIMATE V6.2</title>
+    <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+    <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
     <style>
-        :root { --primary: #22d3ee; --bg: #020617; --card: #0f172a; --border: #1e293b; --text: #f8fafc; }
-        body { background: var(--bg); color: var(--text); font-family: sans-serif; margin: 0; padding: 20px; }
-        .container { max-width: 1200px; margin: auto; }
-        .header { background: var(--card); padding: 20px; border-radius: 15px; border: 1px solid var(--border); margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
-        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 15px; margin-bottom: 20px; }
-        .card { background: var(--card); border: 1px solid var(--border); border-radius: 15px; padding: 20px; text-align: center; }
-        .val { font-size: 2.5rem; font-weight: bold; color: var(--primary); margin: 10px 0; }
-        #chart-box { background: var(--card); padding: 20px; border-radius: 15px; border: 1px solid var(--border); height: 350px; margin-bottom: 20px; }
-        table { width: 100%; border-collapse: collapse; background: var(--card); border-radius: 15px; overflow: hidden; }
-        th, td { padding: 12px; border-bottom: 1px solid var(--border); text-align: center; }
-        th { background: #1e293b; color: var(--primary); }
-        .badge { padding: 5px 10px; border-radius: 5px; font-size: 0.8rem; font-weight: bold; }
-        .on { background: rgba(34, 211, 238, 0.2); color: var(--primary); }
-        .off { background: rgba(244, 63, 94, 0.2); color: #f43f5e; }
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap');
+        
+        :root {
+            --primary: #00f2ff;
+            --secondary: #7000ff;
+            --success: #00ff88;
+            --danger: #ff3e3e;
+            --bg: #030712;
+            --card: rgba(30, 41, 59, 0.6);
+        }
+
+        body {
+            background-color: var(--bg);
+            color: #f8fafc;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-image: 
+                radial-gradient(circle at 0% 0%, rgba(112, 0, 255, 0.15) 0%, transparent 40%),
+                radial-gradient(circle at 100% 100%, rgba(0, 242, 255, 0.1) 0%, transparent 40%);
+            min-height: 100vh;
+        }
+
+        .glass {
+            background: var(--card);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 24px;
+        }
+
+        .status-glow-on {
+            box-shadow: 0 0 15px rgba(0, 242, 255, 0.5);
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+
+        .status-glow-off {
+            opacity: 0.5;
+        }
+
+        @keyframes spin-slow {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        .spinning { animation: spin-slow 2s linear infinite; }
     </style>
 </head>
-<body>
-<div class="container">
-    <div class="header">
-        <div><h2 style="margin:0">NEXUS PRO MONITORING</h2><small id="status">Status: Connecting...</small></div>
-        <div id="jam" style="font-size: 1.5rem; font-weight: bold; color: var(--primary);">00:00:00</div>
+<body class="p-4 md:p-8">
+
+<div class="max-w-6xl mx-auto">
+    <!-- Header -->
+    <header class="glass p-6 mb-8 flex flex-col md:flex-row justify-between items-center gap-4">
+        <div class="flex items-center gap-4">
+            <div class="bg-cyan-500 p-3 rounded-2xl shadow-lg shadow-cyan-500/20">
+                <i data-lucide="layout-dashboard" class="text-slate-900"></i>
+            </div>
+            <div>
+                <h1 class="text-2xl font-extrabold tracking-tight text-white">NEXUS <span class="text-cyan-400">INCUBATOR</span></h1>
+                <p class="text-slate-400 text-sm font-semibold uppercase tracking-widest">System Monitor V4.2</p>
+            </div>
+        </div>
+        <div id="day-counter" class="bg-indigo-600 px-6 py-2 rounded-full font-bold text-sm shadow-lg shadow-indigo-500/30">
+            HARI KE: --
+        </div>
+    </header>
+
+    <!-- Main Stats Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <!-- Temperature -->
+        <div class="glass p-8 relative overflow-hidden group">
+            <div class="absolute -right-4 -top-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                <i data-lucide="thermometer" size="120"></i>
+            </div>
+            <p class="text-slate-400 text-xs font-bold uppercase mb-2">Suhu Internal</p>
+            <div class="flex items-baseline gap-2">
+                <span id="val-t" class="text-6xl font-extrabold">--.-</span>
+                <span class="text-2xl text-slate-500 font-bold">°C</span>
+            </div>
+            <div id="stat-t-msg" class="mt-4 text-xs font-bold text-emerald-400 flex items-center gap-2">
+                <span class="w-2 h-2 bg-emerald-400 rounded-full animate-ping"></span> STABIL
+            </div>
+        </div>
+
+        <!-- Humidity -->
+        <div class="glass p-8 relative overflow-hidden group">
+            <div class="absolute -right-4 -top-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                <i data-lucide="droplets" size="120"></i>
+            </div>
+            <p class="text-slate-400 text-xs font-bold uppercase mb-2">Kelembapan</p>
+            <div class="flex items-baseline gap-2">
+                <span id="val-h" class="text-6xl font-extrabold">--</span>
+                <span class="text-2xl text-slate-500 font-bold">%</span>
+            </div>
+            <div class="mt-4 text-xs font-bold text-cyan-400 flex items-center gap-2">
+                OPTIMAL LEVEL
+            </div>
+        </div>
+
+        <!-- SD Card Status -->
+        <div class="glass p-8 flex flex-col justify-between">
+            <div>
+                <p class="text-slate-400 text-xs font-bold uppercase mb-2">Penyimpanan Log</p>
+                <h3 id="val-sd" class="text-2xl font-extrabold">CHECKING...</h3>
+            </div>
+            <div id="sd-badge" class="mt-4 inline-flex items-center gap-2 px-3 py-1 rounded-lg bg-slate-800 text-[10px] font-black tracking-tighter border border-white/5">
+                SD CARD STATUS
+            </div>
+        </div>
     </div>
-    <div class="grid">
-        <div class="card">Suhu (°C)<div class="val" id="t">0.0</div><span id="l-st" class="badge">LAMPU</span></div>
-        <div class="card">Lembap (%)<div class="val" id="h">0.0</div><span id="m-st" class="badge">MIST</span></div>
-        <div class="card">Cahaya<div class="val" id="ldr">0</div><span id="e-st" class="badge">EXHAUST</span></div>
-        <div class="card">Motor<div id="r-val" style="font-size: 1.5rem; margin: 15px 0;">WAITING</div><span id="r-st" class="badge">MOTOR</span></div>
+
+    <!-- Components Control Status -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+        <div id="card-lamp" class="glass p-6 text-center transition-all duration-500">
+            <i data-lucide="flame" class="mx-auto mb-3"></i>
+            <p class="text-[10px] font-bold text-slate-500 uppercase">Heater</p>
+            <p id="txt-lamp" class="font-black text-lg">OFF</p>
+        </div>
+        <div id="card-mist" class="glass p-6 text-center transition-all duration-500">
+            <i data-lucide="cloud-rain" class="mx-auto mb-3"></i>
+            <p class="text-[10px] font-bold text-slate-500 uppercase">Mist Maker</p>
+            <p id="txt-mist" class="font-black text-lg">OFF</p>
+        </div>
+        <div id="card-exh" class="glass p-6 text-center transition-all duration-500">
+            <i data-lucide="fan" id="icon-exh" class="mx-auto mb-3"></i>
+            <p class="text-[10px] font-bold text-slate-500 uppercase">Exhaust</p>
+            <p id="txt-exh" class="font-black text-lg">OFF</p>
+        </div>
+        <div id="card-roll" class="glass p-6 text-center transition-all duration-500">
+            <i data-lucide="refresh-cw" id="icon-roll" class="mx-auto mb-3"></i>
+            <p class="text-[10px] font-bold text-slate-500 uppercase">Motor Roll</p>
+            <p id="txt-roll" class="font-black text-lg">WAIT</p>
+        </div>
     </div>
-    <div id="chart-box"><canvas id="myChart"></canvas></div>
-    <table>
-        <thead><tr><th>Waktu</th><th>Suhu</th><th>Lembap</th><th>Status</th></tr></thead>
-        <tbody id="log-body"></tbody>
-    </table>
+
+    <!-- Charts -->
+    <div class="glass p-6">
+        <div class="flex justify-between items-center mb-6">
+            <h3 class="font-bold text-lg">Grafik Real-Time</h3>
+            <button onclick="downloadLog()" class="bg-emerald-500 hover:bg-emerald-600 text-slate-900 px-4 py-2 rounded-xl text-xs font-black transition-colors flex items-center gap-2">
+                <i data-lucide="download" size="14"></i> EXCEL LOG
+            </button>
+        </div>
+        <div class="h-64">
+            <canvas id="mainChart"></canvas>
+        </div>
+    </div>
 </div>
+
 <script>
+    // Initialize Icons
+    lucide.createIcons();
+
+    // Firebase Config
     const firebaseConfig = { databaseURL: "https://penetas-telur-553a3-default-rtdb.asia-southeast1.firebasedatabase.app" };
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    const ctx = document.getElementById('myChart').getContext('2d');
-    const myChart = new Chart(ctx, {
+    // Chart Setup
+    const ctx = document.getElementById('mainChart').getContext('2d');
+    const mainChart = new Chart(ctx, {
         type: 'line',
-        data: { labels: [], datasets: [
-            { label: 'Suhu', borderColor: '#22d3ee', data: [], tension: 0.3 },
-            { label: 'Lembap', borderColor: '#818cf8', data: [], tension: 0.3 }
-        ]},
-        options: { responsive: true, maintainAspectRatio: false }
+        data: {
+            labels: [],
+            datasets: [
+                { label: 'Suhu', borderColor: '#00f2ff', backgroundColor: 'rgba(0, 242, 255, 0.1)', data: [], tension: 0.4, fill: true, pointRadius: 0 },
+                { label: 'Humid', borderColor: '#7000ff', data: [], tension: 0.4, pointRadius: 0 }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                x: { display: false },
+                y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#64748b' } }
+            }
+        }
     });
 
-    db.ref('inkubator/live').on('value', s => {
-        const d = s.val(); if(!d) return;
-        document.getElementById('t').innerText = d.t.toFixed(1);
-        document.getElementById('h').innerText = d.h.toFixed(1);
-        document.getElementById('ldr').innerText = d.ldr;
-        document.getElementById('r-val').innerText = d.r_st ? "RUNNING" : "WAITING";
-        const setB = (id, st) => { document.getElementById(id).className = st ? "badge on" : "badge off"; };
-        setB('l-st', d.l_st); setB('m_st', d.m_st); setB('e_st', d.e_st); setB('r_st', d.r_st);
-        document.getElementById('status').innerText = "Last Update: " + d.time;
+    // Real-time Update
+    db.ref('inkubator/live').on('value', snap => {
+        const d = snap.val();
+        if(!d) return;
+
+        // Stats
+        document.getElementById('val-t').innerText = d.t.toFixed(1);
+        document.getElementById('val-h').innerText = Math.round(d.h);
+
+        // SD Status
+        const sdVal = document.getElementById('val-sd');
+        const sdBadge = document.getElementById('sd-badge');
+        if(d.sd_st) {
+            sdVal.innerText = "READY";
+            sdVal.style.color = "#00ff88";
+            sdBadge.className = "mt-4 inline-flex items-center gap-2 px-3 py-1 rounded-lg bg-emerald-500/10 text-emerald-400 text-[10px] font-black border border-emerald-500/20";
+        } else {
+            sdVal.innerText = "DISCONNECT";
+            sdVal.style.color = "#ff3e3e";
+            sdBadge.className = "mt-4 inline-flex items-center gap-2 px-3 py-1 rounded-lg bg-rose-500/10 text-rose-400 text-[10px] font-black border border-rose-500/20";
+        }
+
+        // Logic UI for Relay
+        const updateComponent = (id, state, iconId = null) => {
+            const card = document.getElementById('card-' + id);
+            const txt = document.getElementById('txt-' + id);
+            if(state) {
+                card.classList.add('status-glow-on');
+                txt.innerText = id === 'roll' ? 'ROLLING' : 'ON';
+                if(iconId) document.getElementById(iconId).classList.add('spinning');
+            } else {
+                card.classList.remove('status-glow-on');
+                txt.innerText = id === 'roll' ? 'WAIT' : 'OFF';
+                if(iconId) document.getElementById(iconId).classList.remove('spinning');
+            }
+        };
+
+        updateComponent('lamp', d.l_st);
+        updateComponent('mist', d.m_st);
+        updateComponent('exh', d.e_st, 'icon-exh');
+        updateComponent('roll', d.r_st, 'icon-roll');
     });
 
-    db.ref('inkubator/history').limitToLast(10).on('value', s => {
-        const table = document.getElementById('log-body'); table.innerHTML = "";
-        const times = [], temps = [], hums = [];
-        s.forEach(child => {
-            const v = child.val(); const time = new Date(v.ts).toLocaleTimeString();
-            times.push(time); temps.push(v.t); hums.push(v.h);
-            table.insertAdjacentHTML('afterbegin', `<tr><td>${time}</td><td>${v.t.toFixed(1)}°C</td><td>${v.h.toFixed(1)}%</td><td>RECORDED</td></tr>`);
+    // History Logic (For Day Counter & Chart)
+    db.ref('inkubator/history').limitToLast(30).on('value', snap => {
+        let labels = [], temps = [], hums = [];
+        snap.forEach(child => {
+            const v = child.val();
+            labels.push(new Date(v.ts).toLocaleTimeString());
+            temps.push(v.t);
+            hums.push(v.h);
         });
-        myChart.data.labels = times; myChart.data.datasets[0].data = temps; myChart.data.datasets[1].data = hums; myChart.update();
+        mainChart.data.labels = labels;
+        mainChart.data.datasets[0].data = temps;
+        mainChart.data.datasets[1].data = hums;
+        mainChart.update();
+
+        // Simple Day Counter from history
+        if(snap.exists()){
+            const first = new Date(Object.values(snap.val())[0].ts);
+            const diff = Math.floor((new Date() - first) / 86400000) + 1;
+            document.getElementById('day-counter').innerText = "HARI KE: " + diff;
+        }
     });
-    setInterval(() => { document.getElementById('jam').innerText = new Date().toLocaleTimeString(); }, 1000);
+
+    function downloadLog() {
+        alert("Menyiapkan data log dari SD Card... Pastikan SD Card Ready.");
+    }
 </script>
 </body>
 </html>
