@@ -1,450 +1,227 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-<meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Smart Inkubator Dashboard</title>
-
-<!-- Tailwind CSS -->
-<script src="https://cdn.tailwindcss.com"></script>
-
-<!-- Fonts -->
-<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=JetBrains+Mono:wght@300;400;600&display=swap" rel="stylesheet"/>
-
-<!-- Firebase v8 -->
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
-
-<!-- Chart.js -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-
-<!-- SheetJS -->
-<script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
-
-<script>
-tailwind.config = {
-  theme: {
-    extend: {
-      fontFamily: {
-        hud:  ['Orbitron', 'monospace'],
-        mono: ['JetBrains Mono', 'monospace'],
-      },
-      colors: {
-        void:   '#04070f',
-        panel:  '#080d1a',
-        card:   '#0c1220',
-        border: '#1a2840',
-        cyan:   '#00d4ff',
-        teal:   '#00ffbb',
-        amber:  '#ffaa00',
-        rose:   '#ff3d6b',
-        green:  '#00ff88',
-        purple: '#9d4edd',
-      }
-    }
-  }
-}
-</script>
-
-<style>
-  body { background: #04070f; font-family: 'JetBrains Mono', monospace; }
-
-  /* Grid background */
-  body::before {
-    content: '';
-    position: fixed; inset: 0; pointer-events: none; z-index: 0;
-    background-image:
-      linear-gradient(rgba(0,212,255,.025) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(0,212,255,.025) 1px, transparent 1px);
-    background-size: 48px 48px;
-  }
-
-  /* Glow top radial */
-  body::after {
-    content: '';
-    position: fixed; inset: 0; pointer-events: none; z-index: 0;
-    background: radial-gradient(ellipse 70% 40% at 50% 0%, rgba(0,80,120,.35), transparent 70%);
-  }
-
-  .z1 { position: relative; z-index: 1; }
-
-  /* Scan line animation */
-  @keyframes scan { 0%,100%{opacity:0;left:5%;right:95%} 50%{opacity:1;left:5%;right:5%} }
-  .scan::before {
-    content:''; position:absolute; top:-1px; left:10%; right:10%; height:2px;
-    background: linear-gradient(90deg,transparent,#00d4ff,transparent);
-    animation: scan 3s ease-in-out infinite;
-  }
-
-  /* Pulse */
-  @keyframes pulse-dot { 0%,100%{transform:scale(1);opacity:1} 50%{transform:scale(1.6);opacity:.4} }
-  .pulse { animation: pulse-dot 1.4s ease-in-out infinite; }
-
-  /* Glow text */
-  .glow-cyan  { text-shadow: 0 0 16px rgba(0,212,255,.7); }
-  .glow-amber { text-shadow: 0 0 16px rgba(255,170,0,.7); }
-  .glow-teal  { text-shadow: 0 0 16px rgba(0,255,187,.7); }
-  .glow-rose  { text-shadow: 0 0 16px rgba(255,61,107,.7); }
-
-  /* Card base */
-  .card {
-    background: #0c1220;
-    border: 1px solid #1a2840;
-    border-radius: 10px;
-    transition: border-color .3s, box-shadow .3s;
-  }
-  .card:hover { border-color: rgba(0,212,255,.4); box-shadow: 0 0 24px rgba(0,212,255,.08); }
-
-  /* Status badge */
-  .badge-on  { background: rgba(0,255,136,.1); border-color: rgba(0,255,136,.4); color: #00ff88; }
-  .badge-off { background: rgba(255,61,107,.1); border-color: rgba(255,61,107,.3); color: #ff3d6b; }
-
-  /* Table */
-  .tbl thead th { background: rgba(0,212,255,.07); color: #00d4ff; font-size: .65rem; letter-spacing: .2em; text-transform: uppercase; }
-  .tbl tbody tr:hover td { background: rgba(0,212,255,.04); }
-  .tbl td, .tbl th { padding: 9px 14px; border-bottom: 1px solid #0f1c30; }
-
-  /* Scrollbar */
-  ::-webkit-scrollbar { width:5px; height:5px; }
-  ::-webkit-scrollbar-track { background:#04070f; }
-  ::-webkit-scrollbar-thumb { background:#1a2840; border-radius:3px; }
-  ::-webkit-scrollbar-thumb:hover { background:#00d4ff55; }
-
-  /* Progress bar */
-  .bar-track { height:4px; background:rgba(255,255,255,.06); border-radius:2px; overflow:hidden; margin-top:14px; }
-  .bar-fill  { height:100%; border-radius:2px; transition: width .8s ease; }
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nexus v5.3 | Smart Incubator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background: #0f172a; color: #f8fafc; }
+        .glass { background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.08); }
+        .table-container::-webkit-scrollbar { width: 6px; }
+        .table-container::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
+        .status-on { color: #4ade80; font-weight: bold; }
+        .status-off { color: #f87171; font-weight: bold; }
+        .card-glow { transition: all 0.3s ease; }
+        .card-glow:hover { border-color: rgba(74, 222, 128, 0.4); box-shadow: 0 0 20px rgba(74, 222, 128, 0.1); }
+    </style>
 </head>
-<body class="min-h-screen text-slate-200">
-<div class="z1 max-w-7xl mx-auto px-4 py-6 pb-16">
+<body class="p-4 md:p-8">
 
-  <!-- ════ HEADER ════════════════════════════════════════════ -->
-  <header class="card scan relative flex flex-wrap items-center justify-between gap-4 px-6 py-4 mb-7"
-          style="border-color:rgba(0,212,255,.4);">
-    <div>
-      <h1 class="font-hud text-xl md:text-2xl font-black tracking-widest text-cyan glow-cyan">
-        🥚 SMART INKUBATOR
-      </h1>
-      <p class="text-xs tracking-[.22em] text-slate-500 mt-1">REAL-TIME MONITORING DASHBOARD</p>
-    </div>
-    <div class="flex flex-col items-end gap-1">
-      <div class="flex items-center gap-2 text-xs tracking-widest">
-        <div class="w-2 h-2 rounded-full bg-green pulse"></div>
-        <span class="text-green font-mono">LIVE</span>
-        <span class="text-slate-600">|</span>
-        <span id="conn-status" class="text-amber font-mono">⏳ CONNECTING</span>
-      </div>
-      <div id="clock" class="text-xs text-slate-500 font-mono tracking-wider"></div>
-      <div id="last-upd" class="text-xs text-slate-600 font-mono">Last update: —</div>
-    </div>
-  </header>
+    <div class="max-w-7xl mx-auto">
+        <!-- Header -->
+        <header class="flex flex-col md:flex-row justify-between items-start mb-10 gap-4">
+            <div>
+                <h1 class="text-3xl font-extrabold tracking-tight">NEXUS <span class="text-green-400">COMMANDER V5.3</span></h1>
+                <p class="text-slate-400">Monitoring Real-time & Data Logging Cloud</p>
+            </div>
+            <div class="flex gap-2 flex-wrap">
+                <div id="sd-badge" class="glass px-4 py-2 rounded-xl text-xs font-bold border-slate-700 flex items-center gap-2">
+                    <span id="sd-dot" class="h-2 w-2 rounded-full bg-yellow-500 animate-pulse"></span> SD CARD: LOADING...
+                </div>
+                <button onclick="exportHistory()" class="bg-green-600 hover:bg-green-700 text-white px-5 py-2 rounded-xl text-sm font-bold transition shadow-lg shadow-green-900/20">
+                    📥 Export ke Excel
+                </button>
+            </div>
+        </header>
 
-  <!-- ════ SENSOR CARDS ══════════════════════════════════════ -->
-  <p class="text-xs tracking-[.25em] text-slate-600 uppercase mb-3 font-hud">▸ Sensor Readings</p>
-  <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-7">
+        <!-- Stats Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8 text-center md:text-left">
+            <div class="glass p-6 rounded-3xl card-glow">
+                <p class="text-slate-400 text-xs mb-1 uppercase tracking-widest">Suhu (°C)</p>
+                <h2 id="temp-val" class="text-5xl font-bold text-green-400">--.-</h2>
+            </div>
+            <div class="glass p-6 rounded-3xl card-glow">
+                <p class="text-slate-400 text-xs mb-1 uppercase tracking-widest">Lembap (%)</p>
+                <h2 id="humi-val" class="text-5xl font-bold text-blue-400">--</h2>
+            </div>
+            <div class="glass p-6 rounded-3xl card-glow">
+                <p class="text-slate-400 text-xs mb-1 uppercase tracking-widest">Cahaya (Lux)</p>
+                <h2 id="ldr-val" class="text-5xl font-bold text-yellow-400">---</h2>
+            </div>
+            <div class="glass p-6 rounded-3xl card-glow border-l-4 border-blue-500">
+                <p class="text-slate-400 text-xs mb-1 uppercase tracking-widest">Motor Status</p>
+                <h2 id="motor-st" class="text-2xl font-bold">MENGHUBUNG...</h2>
+            </div>
+        </div>
 
-    <!-- Suhu -->
-    <div class="card px-6 py-5" style="border-top:2px solid #ffaa00;">
-      <p class="text-[.6rem] tracking-[.25em] text-slate-500 uppercase mb-2">🌡 Temperatur</p>
-      <div class="flex items-end gap-1">
-        <span id="val-suhu" class="font-hud text-5xl font-bold text-amber glow-amber">—</span>
-        <span class="text-slate-400 mb-1 text-sm">°C</span>
-      </div>
-      <div class="bar-track"><div id="bar-suhu" class="bar-fill" style="width:0%;background:linear-gradient(90deg,#ffaa00,#ff3d6b)"></div></div>
-    </div>
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Left: Real-time Chart -->
+            <div class="lg:col-span-2 glass p-6 rounded-3xl">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="font-bold">Grafik Tren Suhu</h3>
+                    <div class="flex gap-4 text-[10px] uppercase font-bold">
+                        <div class="flex items-center gap-1"><span class="h-2 w-2 bg-green-400 rounded-full"></span> Lampu: <span id="lamp-st">--</span></div>
+                        <div class="flex items-center gap-1"><span class="h-2 w-2 bg-blue-400 rounded-full"></span> Kipas: <span id="fan-st">--</span></div>
+                    </div>
+                </div>
+                <div class="h-[320px]">
+                    <canvas id="liveChart"></canvas>
+                </div>
+            </div>
 
-    <!-- Humi -->
-    <div class="card px-6 py-5" style="border-top:2px solid #00d4ff;">
-      <p class="text-[.6rem] tracking-[.25em] text-slate-500 uppercase mb-2">💧 Kelembapan</p>
-      <div class="flex items-end gap-1">
-        <span id="val-humi" class="font-hud text-5xl font-bold text-cyan glow-cyan">—</span>
-        <span class="text-slate-400 mb-1 text-sm">%</span>
-      </div>
-      <div class="bar-track"><div id="bar-humi" class="bar-fill" style="width:0%;background:linear-gradient(90deg,#00d4ff,#00ffbb)"></div></div>
-    </div>
-
-    <!-- Cahaya -->
-    <div class="card px-6 py-5" style="border-top:2px solid #9d4edd;">
-      <p class="text-[.6rem] tracking-[.25em] text-slate-500 uppercase mb-2">☀️ Intensitas Cahaya</p>
-      <div class="flex items-end gap-1">
-        <span id="val-ldr" class="font-hud text-5xl font-bold text-purple-400" style="text-shadow:0 0 16px rgba(157,78,221,.7)">—</span>
-        <span class="text-slate-400 mb-1 text-sm">ADC</span>
-      </div>
-      <div class="bar-track"><div id="bar-ldr" class="bar-fill" style="width:0%;background:linear-gradient(90deg,#9d4edd,#ffaa00)"></div></div>
-    </div>
-
-  </div>
-
-  <!-- ════ STATUS BADGE ══════════════════════════════════════ -->
-  <p class="text-xs tracking-[.25em] text-slate-600 uppercase mb-3 font-hud">▸ Status Perangkat</p>
-  <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-7">
-
-    <div class="card px-5 py-4 flex items-center gap-4">
-      <div id="dot-lampu" class="w-3 h-3 rounded-full bg-rose-500 shadow-[0_0_10px_#ff3d6b] transition-all duration-500"></div>
-      <div>
-        <p class="text-[.6rem] tracking-[.2em] text-slate-500 uppercase">💡 Lampu Pemanas</p>
-        <p id="badge-lampu" class="font-hud text-lg font-bold mt-1 text-rose glow-rose">OFF</p>
-      </div>
-    </div>
-
-    <div class="card px-5 py-4 flex items-center gap-4">
-      <div id="dot-motor" class="w-3 h-3 rounded-full bg-rose-500 shadow-[0_0_10px_#ff3d6b] transition-all duration-500"></div>
-      <div>
-        <p class="text-[.6rem] tracking-[.2em] text-slate-500 uppercase">⚙️ Motor Rak</p>
-        <p id="badge-motor" class="font-hud text-lg font-bold mt-1 text-rose glow-rose">IDLE</p>
-      </div>
-    </div>
-
-    <div class="card px-5 py-4 flex items-center gap-4">
-      <div id="dot-mist" class="w-3 h-3 rounded-full bg-rose-500 shadow-[0_0_10px_#ff3d6b] transition-all duration-500"></div>
-      <div>
-        <p class="text-[.6rem] tracking-[.2em] text-slate-500 uppercase">🌫 Mist / Exhaust</p>
-        <p id="badge-mist" class="font-hud text-lg font-bold mt-1 text-rose glow-rose">OFF</p>
-      </div>
+            <!-- Right: Persistent Log Table -->
+            <div class="glass p-6 rounded-3xl flex flex-col h-[450px]">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="font-bold">Riwayat Logging</h3>
+                    <span class="text-[10px] bg-green-900/20 text-green-400 px-2 py-1 rounded">PERSISTEN</span>
+                </div>
+                <div class="table-container overflow-y-auto flex-grow pr-2">
+                    <table class="w-full text-left text-sm border-separate border-spacing-y-2">
+                        <thead class="sticky top-0 bg-slate-900 text-slate-500 text-xs uppercase">
+                            <tr>
+                                <th class="pb-2 pl-2">Waktu</th>
+                                <th class="pb-2">Suhu</th>
+                                <th class="pb-2">Humi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="history-table-body" class="text-slate-300">
+                            <tr><td colspan="3" class="py-10 text-center text-slate-600 italic">Sinkronisasi data history...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                <p class="text-[9px] text-slate-500 mt-4 italic">*Data disimpan otomatis setiap 30 menit ke Cloud.</p>
+            </div>
+        </div>
     </div>
 
-  </div>
+    <script>
+        // FIREBASE V5.3 CONFIGURATION
+        const firebaseConfig = {
+            apiKey: "AIzaSyCDz2IvAAzkPbUmY1APGBS1GRpVIOpv5g8",
+            authDomain: "penetas-telur-553a3.firebaseapp.com",
+            databaseURL: "https://penetas-telur-553a3-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "penetas-telur-553a3",
+            storageBucket: "penetas-telur-553a3.firebasestorage.app",
+            messagingSenderId: "50887200926",
+            appId: "1:50887200926:web:a134dec8ee163057532b8f"
+        };
 
-  <!-- ════ CHART ═════════════════════════════════════════════ -->
-  <p class="text-xs tracking-[.25em] text-slate-600 uppercase mb-3 font-hud">▸ Tren 10 Data Terakhir</p>
-  <div class="card px-6 py-5 mb-7">
-    <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
-      <span class="font-hud text-xs tracking-widest text-slate-400">SUHU & KELEMBAPAN (LIVE)</span>
-      <div class="flex gap-5 text-xs font-mono text-slate-500">
-        <span class="flex items-center gap-2"><span class="inline-block w-6 h-0.5 bg-amber rounded"></span>Suhu °C</span>
-        <span class="flex items-center gap-2"><span class="inline-block w-6 h-0.5 bg-cyan rounded"></span>Humi %</span>
-      </div>
-    </div>
-    <canvas id="chart" style="height:240px;width:100%"></canvas>
-  </div>
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
 
-  <!-- ════ DATA TABLE ════════════════════════════════════════ -->
-  <div class="card px-6 py-5">
-    <div class="flex flex-wrap items-center justify-between gap-3 mb-5">
-      <p class="font-hud text-xs tracking-[.25em] text-slate-400 uppercase">▸ Data Log History</p>
-      <button onclick="exportExcel()"
-        class="flex items-center gap-2 px-4 py-2 rounded-lg border text-xs font-hud tracking-widest uppercase transition-all duration-200
-               bg-emerald-950 border-emerald-700 text-green hover:bg-emerald-900 hover:shadow-[0_0_16px_rgba(0,255,136,.3)]">
-        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-          <polyline points="7 10 12 15 17 10"/>
-          <line x1="12" y1="15" x2="12" y2="3"/>
-        </svg>
-        Export Excel (.xlsx)
-      </button>
-    </div>
+        // CHART SETUP
+        const ctx = document.getElementById('liveChart').getContext('2d');
+        const chart = new Chart(ctx, {
+            type: 'line',
+            data: { 
+                labels: [], 
+                datasets: [{ 
+                    label: 'Suhu', 
+                    borderColor: '#4ade80', 
+                    backgroundColor: 'rgba(74, 222, 128, 0.05)',
+                    data: [], 
+                    tension: 0.4,
+                    fill: true,
+                    pointRadius: 0
+                }] 
+            },
+            options: { 
+                maintainAspectRatio: false, 
+                plugins: { legend: { display: false } },
+                scales: { 
+                    x: { display: false }, 
+                    y: { 
+                        grid: { color: 'rgba(255,255,255,0.05)' },
+                        ticks: { color: '#64748b', font: { size: 10 } }
+                    } 
+                } 
+            }
+        });
 
-    <div class="overflow-auto max-h-80">
-      <table class="tbl w-full text-xs font-mono">
-        <thead>
-          <tr>
-            <th class="text-left">No</th>
-            <th class="text-left">Waktu</th>
-            <th class="text-left">Suhu (°C)</th>
-            <th class="text-left">Kelembapan (%)</th>
-            <th class="text-left">Cahaya</th>
-            <th class="text-left">Lampu</th>
-            <th class="text-left">Mist</th>
-            <th class="text-left">Motor</th>
-          </tr>
-        </thead>
-        <tbody id="tbl-body">
-          <tr><td colspan="8" class="text-center text-slate-600 py-10 tracking-widest">⏳ Memuat data history...</td></tr>
-        </tbody>
-      </table>
-    </div>
-  </div>
+        // 1. LIVE DATA LISTENER
+        db.ref('/inkubator/live').on('value', (snapshot) => {
+            const data = snapshot.val();
+            if(!data) return;
 
-</div><!-- /wrapper -->
+            // Update Labels
+            document.getElementById('temp-val').innerText = data.t.toFixed(1);
+            document.getElementById('humi-val').innerText = data.h.toFixed(0);
+            document.getElementById('ldr-val').innerText = data.ldr;
+            document.getElementById('motor-st').innerText = data.r_st ? "BERPUTAR" : "STANDBY";
+            document.getElementById('motor-st').className = data.r_st ? "text-2xl font-bold text-blue-400 animate-pulse" : "text-2xl font-bold text-slate-500";
+            
+            document.getElementById('lamp-st').innerText = data.l_st ? "ON" : "OFF";
+            document.getElementById('lamp-st').className = data.l_st ? "status-on" : "status-off";
+            
+            document.getElementById('fan-st').innerText = (data.f_st || data.m_st || data.e_st) ? "ON" : "OFF";
+            document.getElementById('fan-st').className = (data.f_st || data.m_st || data.e_st) ? "status-on" : "status-off";
 
-<!-- ════ SCRIPT ════════════════════════════════════════════════ -->
-<script>
-/* ── Firebase init ──────────────────────────────────────── */
-const fb = firebase.initializeApp({
-  apiKey:            "AIzaSyCDz2IvAAzkPbUmY1APGBS1GRpVIOpv5g8",
-  authDomain:        "penetas-telur-553a3.firebaseapp.com",
-  databaseURL:       "https://penetas-telur-553a3-default-rtdb.asia-southeast1.firebasedatabase.app",
-  projectId:         "penetas-telur-553a3",
-  storageBucket:     "penetas-telur-553a3.firebasestorage.app",
-  messagingSenderId: "50887200926",
-  appId:             "1:50887200926:web:a134dec8ee163057532b8f"
-});
-const db = firebase.database();
+            // SD Card Status
+            const sdBadge = document.getElementById('sd-badge');
+            if(data.sd_st) {
+                sdBadge.innerHTML = `<span class="h-2 w-2 rounded-full bg-green-400 shadow-[0_0_8px_#4ade80]"></span> SD CARD: READY`;
+                sdBadge.classList.replace('border-slate-700', 'border-green-500/30');
+            } else {
+                sdBadge.innerHTML = `<span class="h-2 w-2 rounded-full bg-red-500 shadow-[0_0_8px_#f87171]"></span> SD CARD: ERROR`;
+                sdBadge.classList.replace('border-slate-700', 'border-red-500/30');
+            }
 
-/* ── Clock WIB ──────────────────────────────────────────── */
-setInterval(() => {
-  const wib = new Date(Date.now() + 7*3600000);
-  document.getElementById('clock').textContent =
-    wib.toISOString().replace('T',' ').substring(0,19) + ' WIB';
-}, 1000);
+            // Chart Update
+            if(chart.data.labels.length > 25) { chart.data.labels.shift(); chart.data.datasets[0].data.shift(); }
+            chart.data.labels.push(""); 
+            chart.data.datasets[0].data.push(data.t);
+            chart.update('none');
+        });
 
-/* ── Chart setup ────────────────────────────────────────── */
-const MAX_PTS = 10;
-const labels  = [], dTemp = [], dHumi = [];
+        // 2. HISTORY DATA LISTENER (Persistent)
+        db.ref('/inkubator/history').limitToLast(30).on('value', (snapshot) => {
+            const history = snapshot.val();
+            const tableBody = document.getElementById('history-table-body');
+            tableBody.innerHTML = "";
 
-const chart = new Chart(document.getElementById('chart').getContext('2d'), {
-  type: 'line',
-  data: {
-    labels,
-    datasets: [
-      {
-        label:'Suhu °C', data:dTemp,
-        borderColor:'#ffaa00', backgroundColor:'rgba(255,170,0,.07)',
-        borderWidth:2, pointRadius:3, tension:.4, fill:true, yAxisID:'yT'
-      },
-      {
-        label:'Humi %', data:dHumi,
-        borderColor:'#00d4ff', backgroundColor:'rgba(0,212,255,.07)',
-        borderWidth:2, pointRadius:3, tension:.4, fill:true, yAxisID:'yH'
-      }
-    ]
-  },
-  options: {
-    responsive:true, maintainAspectRatio:false,
-    interaction:{ mode:'index', intersect:false },
-    plugins:{ legend:{ display:false },
-      tooltip:{
-        backgroundColor:'rgba(8,13,26,.95)',
-        borderColor:'rgba(0,212,255,.3)', borderWidth:1,
-        titleColor:'#8899bb', bodyColor:'#e8f4ff',
-        titleFont:{ family:"'JetBrains Mono',monospace", size:10 },
-        bodyFont: { family:"'JetBrains Mono',monospace", size:11 }
-      }
-    },
-    scales:{
-      x:{ ticks:{ color:'#334155', font:{family:"'JetBrains Mono',monospace",size:9}, maxRotation:0 },
-          grid:{ color:'rgba(0,212,255,.05)' }},
-      yT:{ type:'linear', position:'left',
-           ticks:{ color:'#ffaa00', font:{family:"'JetBrains Mono',monospace",size:9} },
-           grid:{ color:'rgba(255,170,0,.05)' }},
-      yH:{ type:'linear', position:'right',
-           ticks:{ color:'#00d4ff', font:{family:"'JetBrains Mono',monospace",size:9} },
-           grid:{ drawOnChartArea:false }}
-    }
-  }
-});
+            if(history) {
+                const keys = Object.keys(history).reverse();
+                keys.forEach(key => {
+                    const row = history[key];
+                    const time = row.ts ? new Date(row.ts).toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit'}) : "--:--";
+                    tableBody.innerHTML += `
+                        <tr class="bg-white/5 rounded-xl transition hover:bg-white/10">
+                            <td class="py-3 pl-3 rounded-l-xl text-slate-500 font-mono">${time}</td>
+                            <td class="py-3 font-bold text-green-400">${row.t.toFixed(1)}°C</td>
+                            <td class="py-3 rounded-r-xl font-bold text-blue-400">${row.h.toFixed(0)}%</td>
+                        </tr>
+                    `;
+                });
+            } else {
+                tableBody.innerHTML = `<tr><td colspan="3" class="py-10 text-center text-slate-600">Belum ada data history tersimpan.</td></tr>`;
+            }
+        });
 
-function addChartPoint(suhu, humi, waktu) {
-  const t = waktu ? waktu.substring(11,19) : new Date().toLocaleTimeString('id-ID');
-  labels.push(t); dTemp.push(+suhu||0); dHumi.push(+humi||0);
-  if (labels.length > MAX_PTS) { labels.shift(); dTemp.shift(); dHumi.shift(); }
-  chart.update('none');
-}
+        // EXPORT FUNCTION
+        function exportHistory() {
+            db.ref('/inkubator/history').once('value').then(snap => {
+                const data = snap.val();
+                if(!data) return alert("Data kosong!");
+                
+                const rows = Object.values(data).map(v => ({
+                    Tanggal: new Date(v.ts).toLocaleDateString('id-ID'),
+                    Waktu: new Date(v.ts).toLocaleTimeString('id-ID'),
+                    Suhu: v.t,
+                    Kelembapan: v.h
+                }));
 
-/* ── Relay status helper ────────────────────────────────── */
-function setDevice(id, isOn, labelOn, labelOff) {
-  const dot   = document.getElementById('dot-'  + id);
-  const badge = document.getElementById('badge-'+ id);
-  if (!dot) return;
-  if (isOn) {
-    dot.style.background   = '#00ff88';
-    dot.style.boxShadow    = '0 0 14px #00ff88, 0 0 28px rgba(0,255,136,.3)';
-    dot.classList.add('pulse');
-    badge.textContent      = labelOn;
-    badge.style.color      = '#00ff88';
-    badge.style.textShadow = '0 0 16px rgba(0,255,136,.7)';
-  } else {
-    dot.style.background   = '#ff3d6b';
-    dot.style.boxShadow    = '0 0 10px #ff3d6b';
-    dot.classList.remove('pulse');
-    badge.textContent      = labelOff;
-    badge.style.color      = '#ff3d6b';
-    badge.style.textShadow = '0 0 16px rgba(255,61,107,.7)';
-  }
-}
-
-/* ── Live listener ──────────────────────────────────────── */
-db.ref('/inkubator/live').on('value', snap => {
-  const d = snap.val();
-  if (!d) return;
-
-  const suhu = parseFloat(d.suhu)||0;
-  const humi = parseFloat(d.humi)||0;
-  const ldr  = parseInt(d.ldr)  ||0;
-
-  document.getElementById('val-suhu').textContent = suhu.toFixed(1);
-  document.getElementById('val-humi').textContent = humi.toFixed(1);
-  document.getElementById('val-ldr').textContent  = ldr;
-
-  document.getElementById('bar-suhu').style.width = Math.min(100, Math.max(0,((suhu-30)/20)*100)) + '%';
-  document.getElementById('bar-humi').style.width = Math.min(100, humi) + '%';
-  document.getElementById('bar-ldr').style.width  = Math.min(100,(ldr/4095)*100) + '%';
-
-  setDevice('lampu', d.lampu==='ON', 'ON',  'OFF');
-  setDevice('motor', d.motor==='ON', 'RUN', 'IDLE');
-  setDevice('mist',  d.mist ==='ON', 'ON',  'OFF');
-
-  addChartPoint(suhu, humi, d.waktu);
-
-  document.getElementById('conn-status').textContent = '🟢 TERHUBUNG';
-  document.getElementById('conn-status').style.color = '#00ff88';
-  document.getElementById('last-upd').textContent =
-    'Last update: ' + new Date().toLocaleTimeString('id-ID');
-}, err => {
-  document.getElementById('conn-status').textContent = '🔴 GAGAL';
-  document.getElementById('conn-status').style.color = '#ff3d6b';
-  console.error(err);
-});
-
-/* ── History listener (tabel) ───────────────────────────── */
-let historyRows = [];
-
-db.ref('/inkubator/history').on('value', snap => {
-  historyRows = [];
-  const tbody = document.getElementById('tbl-body');
-
-  if (!snap.exists()) {
-    tbody.innerHTML = '<tr><td colspan="8" class="text-center text-slate-600 py-10 tracking-widest">📭 Belum ada data history.</td></tr>';
-    return;
-  }
-
-  snap.forEach(c => historyRows.push({ key:c.key, ...c.val() }));
-
-  const sorted = [...historyRows].reverse();
-  tbody.innerHTML = sorted.map((d,i) => {
-    const no = historyRows.length - i;
-    const lampuColor = d.lampu==='ON' ? '#00ff88' : '#ff3d6b';
-    const mistColor  = d.mist ==='ON' ? '#00d4ff' : '#ff3d6b';
-    const motorColor = d.motor==='ON' ? '#ffaa00' : '#ff3d6b';
-    return `<tr>
-      <td class="text-slate-600">${no}</td>
-      <td class="text-slate-400">${d.waktu||d.key||'—'}</td>
-      <td style="color:#ffaa00">${(+d.suhu).toFixed(1)||'—'}</td>
-      <td style="color:#00d4ff">${(+d.humi).toFixed(1)||'—'}</td>
-      <td class="text-slate-400">${d.ldr||'—'}</td>
-      <td style="color:${lampuColor}">${d.lampu||'—'}</td>
-      <td style="color:${mistColor}">${d.mist||'—'}</td>
-      <td style="color:${motorColor}">${d.motor||'—'}</td>
-    </tr>`;
-  }).join('');
-});
-
-/* ── Export Excel ───────────────────────────────────────── */
-function exportExcel() {
-  if (!historyRows.length) {
-    alert('⚠️ Belum ada data history.\nTunggu minimal 30 menit setelah ESP32 aktif.');
-    return;
-  }
-  const rows = historyRows.map((d,i) => ({
-    'No'              : i+1,
-    'Waktu'           : d.waktu||d.key||'',
-    'Suhu (°C)'       : +d.suhu||0,
-    'Kelembapan (%)'  : +d.humi||0,
-    'Cahaya (ADC)'    : +d.ldr ||0,
-    'Lampu'           : d.lampu||'',
-    'Mist'            : d.mist ||'',
-    'Motor'           : d.motor||''
-  }));
-
-  const ws = XLSX.utils.json_to_sheet(rows);
-  ws['!cols'] = [{wch:5},{wch:22},{wch:11},{wch:15},{wch:13},{wch:8},{wch:8},{wch:8}];
-
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, 'Log Inkubator');
-
-  const ts = new Date().toISOString().replace(/[:.]/g,'-').substring(0,19);
-  XLSX.writeFile(wb, `Inkubator_Log_${ts}.xlsx`);
-}
-</script>
+                const ws = XLSX.utils.json_to_sheet(rows);
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, "Log_Inkubator");
+                XLSX.writeFile(wb, "Nexus_V53_Logging.xlsx");
+            });
+        }
+    </script>
 </body>
 </html>
