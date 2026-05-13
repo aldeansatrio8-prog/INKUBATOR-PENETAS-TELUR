@@ -1,326 +1,483 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Nexus Incubator Dashboard Pro</title>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <style>
-        :root {
-            --bg-color: #0f172a;
-            --card-bg: #1e293b;
-            --primary: #38bdf8;
-            --success: #10b981;
-            --danger: #ef4444;
-            --warning: #f59e0b;
-            --text-main: #f8fafc;
-            --text-dim: #94a3b8;
-        }
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>NEXUS COMMANDER V5.0 — Dashboard</title>
 
-        body {
-            font-family: 'Segoe UI', sans-serif;
-            background-color: var(--bg-color);
-            color: var(--text-main);
-            margin: 0;
-            padding: 20px;
-        }
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&family=Exo+2:wght@300;400;600&display=swap" rel="stylesheet"/>
 
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-        }
+<style>
+:root {
+  --bg-base:#060a12;--bg-card:#0c1525;--border:#1a3a6a;--border-glow:#1e5aad;
+  --cyan:#00d4ff;--blue:#1e90ff;--red:#ff4d6d;--gold:#ffc847;
+  --green:#00ff9f;--purple:#b47cff;--dim:#4a6a9a;--main:#c8e0ff;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg-base);color:var(--main);font-family:'Exo 2',sans-serif;min-height:100vh;overflow-x:hidden}
+body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(0,212,255,.035) 1px,transparent 1px),linear-gradient(90deg,rgba(0,212,255,.035) 1px,transparent 1px);background-size:40px 40px;pointer-events:none;z-index:0}
+body::after{content:'';position:fixed;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,.05) 2px,rgba(0,0,0,.05) 4px);pointer-events:none;z-index:0}
+.wrap{position:relative;z-index:1;max-width:1400px;margin:0 auto;padding:24px 20px}
 
-        header {
-            text-align: center;
-            margin-bottom: 30px;
-        }
+header{display:flex;align-items:center;justify-content:space-between;margin-bottom:32px;flex-wrap:wrap;gap:16px}
+.logo-title{font-family:'Orbitron',monospace;font-size:clamp(1rem,3vw,1.65rem);font-weight:900;color:var(--cyan);letter-spacing:4px;text-shadow:0 0 24px #00d4ff77;animation:glitch 9s infinite}
+.logo-sub{font-family:'Share Tech Mono',monospace;font-size:.68rem;color:var(--dim);letter-spacing:3px;margin-top:2px}
+.hright{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+#clock{font-family:'Share Tech Mono',monospace;font-size:1rem;color:var(--cyan);letter-spacing:2px}
+.badge{display:inline-flex;align-items:center;gap:6px;padding:5px 13px;border-radius:20px;font-family:'Orbitron',monospace;font-size:.62rem;font-weight:700;letter-spacing:2px;border:1px solid;transition:all .4s}
+.badge.online{background:rgba(0,255,159,.09);border-color:var(--green);color:var(--green);box-shadow:0 0 14px #00ff9f33}
+.badge.offline{background:rgba(255,77,109,.09);border-color:var(--red);color:var(--red);box-shadow:0 0 14px #ff4d6d33}
+.bdot{width:7px;height:7px;border-radius:50%;animation:blink 1.2s infinite}
+.badge.online .bdot{background:var(--green)}
+.badge.offline .bdot{background:var(--red);animation:none}
 
-        header h1 {
-            color: var(--primary);
-            margin: 0;
-            font-size: 2.5rem;
-        }
+.sl{font-family:'Share Tech Mono',monospace;font-size:.66rem;letter-spacing:4px;color:var(--dim);text-transform:uppercase;margin-bottom:12px}
 
-        .status-badges {
-            display: flex;
-            justify-content: center;
-            gap: 10px;
-            margin-top: 10px;
-        }
+.cg{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;margin-bottom:28px}
+.sc{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:22px 24px;position:relative;overflow:hidden;transition:border-color .3s,box-shadow .3s}
+.sc::before{content:'';position:absolute;top:0;left:0;right:0;height:2px}
+.sc.red::before{background:var(--red)}.sc.blue::before{background:var(--blue)}.sc.gold::before{background:var(--gold)}
+.sc.red:hover{border-color:var(--red);box-shadow:0 0 18px #ff4d6d33}
+.sc.blue:hover{border-color:var(--blue);box-shadow:0 0 18px #1e90ff33}
+.sc.gold:hover{border-color:var(--gold);box-shadow:0 0 18px #ffc84733}
+.sc::after{content:'';position:absolute;bottom:0;right:0;width:50px;height:50px;border-top:1px solid var(--border);border-left:1px solid var(--border);border-radius:50% 0 0 0;opacity:.4}
+.ci{font-size:1.5rem;margin-bottom:6px;opacity:.85}
+.cl{font-family:'Share Tech Mono',monospace;font-size:.63rem;letter-spacing:3px;color:var(--dim);margin-bottom:4px}
+.cv{font-family:'Orbitron',monospace;font-weight:700;font-size:clamp(1.8rem,4.5vw,2.6rem);line-height:1;transition:all .4s}
+.sc.red .cv{color:var(--red);text-shadow:0 0 18px #ff4d6d55}
+.sc.blue .cv{color:var(--blue);text-shadow:0 0 18px #1e90ff55}
+.sc.gold .cv{color:var(--gold);text-shadow:0 0 18px #ffc84755}
+.cu{font-family:'Share Tech Mono',monospace;font-size:.82rem;color:var(--dim);margin-top:4px}
 
-        .badge {
-            padding: 5px 15px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: bold;
-            border: 1px solid transparent;
-        }
+.mg{display:grid;grid-template-columns:1fr 320px;gap:16px;margin-bottom:28px;align-items:start}
+@media(max-width:860px){.mg{grid-template-columns:1fr}}
+.cc,.dc{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:22px}
+.dr{display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid rgba(26,58,106,.5)}
+.dr:last-child{border-bottom:none}
+.dn{font-family:'Share Tech Mono',monospace;font-size:.8rem;color:var(--main);display:flex;align-items:center;gap:10px}
+.sdot{width:11px;height:11px;border-radius:50%;flex-shrink:0;transition:background .4s,box-shadow .4s}
+.sdot.on{background:var(--green);box-shadow:0 0 10px var(--green),0 0 20px var(--green);animation:pdot 1.5s infinite}
+.sdot.off{background:#2a3a55;box-shadow:none}
+.slbl{font-family:'Share Tech Mono',monospace;font-size:.68rem;letter-spacing:2px;margin-left:6px;transition:color .4s}
+.slbl.on{color:var(--green)}.slbl.off{color:var(--dim)}
+.dright{display:flex;align-items:center;gap:6px}
 
-        .on { background: rgba(16, 185, 129, 0.2); color: var(--success); border-color: var(--success); }
-        .off { background: rgba(239, 68, 68, 0.2); color: var(--danger); border-color: var(--danger); }
+.sbar-card{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:16px 22px;margin-bottom:28px}
+.sbar-row{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.sbar-track{flex:1;height:6px;background:#1a3a6a;border-radius:3px;min-width:100px;overflow:hidden}
+.sbar-fill{height:100%;border-radius:3px;background:linear-gradient(90deg,var(--cyan),var(--green));transition:width .5s}
+.sbar-fill.warn{background:linear-gradient(90deg,var(--gold),var(--red))}
+.sbar-info{font-family:'Share Tech Mono',monospace;font-size:.68rem;color:var(--dim);white-space:nowrap}
+.sbar-count{font-family:'Orbitron',monospace;font-size:.75rem;color:var(--cyan);white-space:nowrap}
 
-        .main-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 20px;
-            margin-bottom: 20px;
-        }
+.tc{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:22px;margin-bottom:28px}
+.thead-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:12px}
+.tmeta{font-family:'Share Tech Mono',monospace;font-size:.65rem;color:var(--dim);letter-spacing:1px;margin-top:4px}
+.tscroll{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-family:'Share Tech Mono',monospace;font-size:.74rem}
+thead th{text-align:left;padding:8px 12px;color:var(--cyan);letter-spacing:2px;font-size:.63rem;border-bottom:1px solid var(--border-glow)}
+tbody tr{border-bottom:1px solid rgba(26,58,106,.3);transition:background .2s}
+tbody tr:hover{background:rgba(0,212,255,.04)}
+tbody td{padding:8px 12px;color:var(--main)}
 
-        .card {
-            background: var(--card-bg);
-            padding: 20px;
-            border-radius: 15px;
-            text-align: center;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
-        }
+.dl-bar{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:8px;font-family:'Orbitron',monospace;font-size:.6rem;font-weight:700;letter-spacing:2px;border:1px solid;cursor:pointer;background:transparent;transition:all .22s}
+.btn:active{transform:scale(.97)}
+.btn.g{border-color:var(--green);color:var(--green)}
+.btn.g:hover{background:rgba(0,255,159,.12);box-shadow:0 0 14px #00ff9f33}
+.btn.y{border-color:var(--gold);color:var(--gold)}
+.btn.y:hover{background:rgba(255,200,71,.12);box-shadow:0 0 14px #ffc84733}
+.btn.p{border-color:var(--purple);color:var(--purple)}
+.btn.p:hover{background:rgba(180,124,255,.12);box-shadow:0 0 14px #b47cff33}
+.btn.r{border-color:var(--red);color:var(--red)}
+.btn.r:hover{background:rgba(255,77,109,.12);box-shadow:0 0 14px #ff4d6d33}
 
-        .card .label { color: var(--text-dim); font-size: 14px; text-transform: uppercase; }
-        .card .value { font-size: 36px; font-weight: bold; margin: 10px 0; }
-        .card .unit { font-size: 18px; color: var(--text-dim); }
+.toast{position:fixed;bottom:24px;right:24px;padding:11px 18px;border-radius:10px;font-family:'Share Tech Mono',monospace;font-size:.73rem;letter-spacing:1px;z-index:9999;opacity:0;transform:translateY(8px);transition:all .3s;pointer-events:none;max-width:320px}
+.toast.show{opacity:1;transform:translateY(0)}
+.toast.ok{background:#051a0e;border:1px solid var(--green);color:var(--green)}
+.toast.err{background:#1a0505;border:1px solid var(--red);color:var(--red)}
 
-        .chart-container {
-            background: var(--card-bg);
-            padding: 20px;
-            border-radius: 15px;
-            margin-bottom: 20px;
-            height: 300px;
-        }
+footer{text-align:center;padding:20px;font-family:'Share Tech Mono',monospace;font-size:.63rem;color:var(--dim);letter-spacing:2px;border-top:1px solid var(--border)}
 
-        .relay-status-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
-            margin-bottom: 20px;
-        }
-
-        .relay-item {
-            background: var(--card-bg);
-            padding: 15px;
-            border-radius: 12px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .log-section {
-            background: var(--card-bg);
-            padding: 20px;
-            border-radius: 15px;
-            overflow-x: auto;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 10px;
-        }
-
-        th, td {
-            text-align: left;
-            padding: 12px;
-            border-bottom: 1px solid #334155;
-        }
-
-        th { color: var(--text-dim); font-size: 13px; }
-
-        .indicator-dot {
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-            display: inline-block;
-            margin-right: 5px;
-        }
-        .dot-on { background: var(--success); box-shadow: 0 0 8px var(--success); }
-        .dot-off { background: var(--danger); }
-    </style>
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
+@keyframes pdot{0%,100%{transform:scale(1)}50%{transform:scale(1.3)}}
+@keyframes glitch{0%,93%,100%{text-shadow:0 0 24px #00d4ff77}94%{text-shadow:-2px 0 var(--red),2px 0 var(--cyan)}97%{text-shadow:2px 0 var(--red),-2px 0 var(--blue)}}
+@media(max-width:600px){.cg{grid-template-columns:1fr}header{flex-direction:column;align-items:flex-start}.hright{width:100%;justify-content:space-between}}
+</style>
 </head>
 <body>
+<div class="wrap">
 
-<div class="container">
-    <header>
-        <h1>NEXUS DASHBOARD</h1>
-        <div class="status-badges">
-            <span id="sys-status" class="badge off">System Offline</span>
-            <span id="sd-status" class="badge off">SD: Error</span>
-        </div>
-    </header>
-
-    <div class="main-grid">
-        <div class="card">
-            <i class="fas fa-thermometer-half" style="color: #fb7185"></i>
-            <div class="label">Suhu</div>
-            <div class="value"><span id="val-t">--.-</span><span class="unit">°C</span></div>
-        </div>
-        <div class="card">
-            <i class="fas fa-tint" style="color: #38bdf8"></i>
-            <div class="label">Lembap</div>
-            <div class="value"><span id="val-h">--</span><span class="unit">%</span></div>
-        </div>
-        <div class="card">
-            <i class="fas fa-sun" style="color: #fbbf24"></i>
-            <div class="label">Intensitas Cahaya</div>
-            <div class="value"><span id="val-l">--</span><span class="unit">Lux</span></div>
-        </div>
+<header>
+  <div>
+    <div class="logo-title">NEXUS COMMANDER</div>
+    <div class="logo-sub">SMART INCUBATOR MONITORING SYSTEM &middot; V5.0 &middot; PENETAS TELUR</div>
+  </div>
+  <div class="hright">
+    <div id="clock">--:--:--</div>
+    <div class="badge offline" id="connBadge">
+      <span class="bdot"></span><span id="connText">OFFLINE</span>
     </div>
+  </div>
+</header>
 
-    <div class="chart-container">
-        <canvas id="liveChart"></canvas>
-    </div>
-
-    <div class="relay-status-grid">
-        <div class="relay-item">
-            <span><i class="fas fa-lightbulb"></i> Lampu</span>
-            <span id="st-lamp" class="badge off">OFF</span>
-        </div>
-        <div class="relay-item">
-            <span><i class="fas fa-wind"></i> Exhaust</span>
-            <span id="st-exh" class="badge off">OFF</span>
-        </div>
-        <div class="relay-item">
-            <span><i class="fas fa-cloud-rain"></i> Mist Maker</span>
-            <span id="st-mist" class="badge off">OFF</span>
-        </div>
-        <div class="relay-item">
-            <span><i class="fas fa-sync"></i> Motor Rak</span>
-            <span id="st-motor" class="badge off">OFF</span>
-        </div>
-    </div>
-
-    <div class="log-section">
-        <h3><i class="fas fa-history"></i> Log Data Terakhir</h3>
-        <table>
-            <thead>
-                <tr>
-                    <th>Waktu</th>
-                    <th>Suhu</th>
-                    <th>Humi</th>
-                    <th>LDR</th>
-                    <th>Status Motor</th>
-                </tr>
-            </thead>
-            <tbody id="log-body">
-                <!-- Data dari Firebase akan muncul di sini -->
-            </tbody>
-        </table>
-    </div>
+<div class="sl">// sensor readings</div>
+<div class="cg">
+  <div class="sc red"><div class="ci">🌡️</div><div class="cl">SUHU &middot; TEMPERATURE</div><div class="cv" id="valSuhu">—</div><div class="cu">°C &middot; CELSIUS</div></div>
+  <div class="sc blue"><div class="ci">💧</div><div class="cl">KELEMBAPAN &middot; HUMIDITY</div><div class="cv" id="valHumid">—</div><div class="cu">% &middot; RELATIVE HUMIDITY</div></div>
+  <div class="sc gold"><div class="ci">☀️</div><div class="cl">INTENSITAS CAHAYA &middot; LDR</div><div class="cv" id="valLDR">—</div><div class="cu">RAW ADC &middot; 0–4095</div></div>
 </div>
 
+<div class="sl">// realtime analytics & device status</div>
+<div class="mg">
+  <div class="cc">
+    <div class="sl" style="margin-bottom:14px">suhu & kelembapan — grafik real-time</div>
+    <canvas id="lineChart" height="220"></canvas>
+  </div>
+  <div class="dc">
+    <div class="sl" style="margin-bottom:10px">status perangkat</div>
+    <div class="dr"><div class="dn"><span>💡</span> LAMPU PEMANAS</div><div class="dright"><div class="sdot off" id="dot-lampu"></div><div class="slbl off" id="lbl-lampu">OFF</div></div></div>
+    <div class="dr"><div class="dn"><span>🌫️</span> MIST MAKER</div><div class="dright"><div class="sdot off" id="dot-mist"></div><div class="slbl off" id="lbl-mist">OFF</div></div></div>
+    <div class="dr"><div class="dn"><span>⚙️</span> MOTOR RAK</div><div class="dright"><div class="sdot off" id="dot-motor"></div><div class="slbl off" id="lbl-motor">OFF</div></div></div>
+    <div class="dr"><div class="dn"><span>💾</span> SD CARD</div><div class="dright"><div class="sdot off" id="dot-sd"></div><div class="slbl off" id="lbl-sd">ERROR</div></div></div>
+  </div>
+</div>
+
+<div class="sbar-card">
+  <div class="sbar-row">
+    <div class="sl" style="margin:0;white-space:nowrap">// penyimpanan log lokal</div>
+    <div class="sbar-track"><div class="sbar-fill" id="storFill" style="width:0%"></div></div>
+    <div class="sbar-count" id="storCount">0 entri</div>
+    <div class="sbar-info" id="storSize">0 KB / ~5 MB</div>
+  </div>
+</div>
+
+<div class="tc">
+  <div class="thead-row">
+    <div>
+      <div class="sl" style="margin-bottom:2px">// data log — tersimpan permanen di browser</div>
+      <div class="tmeta">&#x2713; Tidak hilang saat refresh &nbsp;|&nbsp; Max 5000 entri &nbsp;|&nbsp; localStorage</div>
+    </div>
+    <div class="dl-bar">
+      <button class="btn g" onclick="downloadExcel('all')">&#x2B07; EXCEL SEMUA</button>
+      <button class="btn y" onclick="downloadExcel('today')">&#x2B07; EXCEL HARI INI</button>
+      <button class="btn p" onclick="downloadCSV()">&#x2B07; CSV</button>
+      <button class="btn r" onclick="confirmClear()">&#x1F5D1; HAPUS LOG</button>
+    </div>
+  </div>
+  <div class="tscroll">
+    <table>
+      <thead><tr>
+        <th>#</th><th>TIMESTAMP</th><th>SUHU (°C)</th><th>HUMID (%)</th>
+        <th>LDR</th><th>LAMPU</th><th>MIST</th><th>MOTOR</th><th>SD</th>
+      </tr></thead>
+      <tbody id="logTable">
+        <tr><td colspan="9" style="color:var(--dim);text-align:center;padding:22px">Menunggu data dari Firebase...</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+</div>
+<footer>NEXUS COMMANDER V5.0 &middot; PENETAS TELUR &middot; penetas-telur-553a3 &middot; REALTIME MONITORING &middot; FIREBASE RTDB</footer>
+<div class="toast" id="toast"></div>
+
 <script>
-    // --- KONFIGURASI FIREBASE ---
-    const firebaseConfig = {
-        databaseURL: "https://penetas-telur-553a3-default-rtdb.asia-southeast1.firebasedatabase.app"
-    };
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.database();
+/* ════════════════════════════════════════════
+   FIREBASE CONFIG — penetas-telur-553a3
+   ════════════════════════════════════════════ */
+const firebaseConfig = {
+  apiKey:            "AIzaSyCDz2IvAAzkPbUmY1APGBS1GRpVIOpv5g8",
+  authDomain:        "penetas-telur-553a3.firebaseapp.com",
+  databaseURL:       "https://penetas-telur-553a3-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId:         "penetas-telur-553a3",
+  storageBucket:     "penetas-telur-553a3.firebasestorage.app",
+  messagingSenderId: "50887200926",
+  appId:             "1:50887200926:web:a134dec8ee163057532b8f"
+};
 
-    // --- INISIALISASI GRAFIK ---
-    const ctx = document.getElementById('liveChart').getContext('2d');
-    const liveChart = new Chart(ctx, {
-        type: 'line',
-        data: {
-            labels: [],
-            datasets: [{
-                label: 'Suhu (°C)',
-                borderColor: '#fb7185',
-                data: [],
-                borderWidth: 2,
-                fill: false,
-                tension: 0.4
-            }, {
-                label: 'Lembap (%)',
-                borderColor: '#38bdf8',
-                data: [],
-                borderWidth: 2,
-                fill: false,
-                tension: 0.4
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            scales: {
-                x: { ticks: { color: '#94a3b8' } },
-                y: { ticks: { color: '#94a3b8' } }
-            },
-            plugins: {
-                legend: { labels: { color: '#f8fafc' } }
-            }
-        }
-    });
+/* ════════════════════════════════════════════
+   PERSISTENT LOG — localStorage
+   ════════════════════════════════════════════ */
+const LS_KEY   = 'nexus_penetas_telur_log_v1';
+const MAX_ROWS = 5000;
+const VIS_ROWS = 50;
 
-    // --- MENDENGARKAN DATA REAL-TIME ---
-    db.ref('/inkubator/live').on('value', (snapshot) => {
-        const data = snapshot.val();
-        if (data) {
-            // Update Angka
-            document.getElementById('val-t').innerText = data.t.toFixed(1);
-            document.getElementById('val-h').innerText = data.h.toFixed(0);
-            // Anggap LDR dikirim dari ESP32 dengan key 'ldr' (atau random mock jika belum ada)
-            const ldrVal = data.ldr || Math.floor(Math.random() * 500); 
-            document.getElementById('val-l').innerText = ldrVal;
+function loadLog() {
+  try { const r = localStorage.getItem(LS_KEY); return r ? JSON.parse(r) : []; }
+  catch(e) { return []; }
+}
+function saveLog(arr) {
+  try { localStorage.setItem(LS_KEY, JSON.stringify(arr)); }
+  catch(e) {
+    arr.splice(Math.floor(arr.length * 0.9));
+    try { localStorage.setItem(LS_KEY, JSON.stringify(arr)); } catch(e2) {}
+    showToast('Storage hampir penuh, entri lama dihapus otomatis', 'err');
+  }
+}
 
-            // Status Sistem & SD
-            document.getElementById('sys-status').innerText = "System Online";
-            document.getElementById('sys-status').className = "badge on";
-            document.getElementById('sd-status').innerText = data.sd_st ? "SD: Ready" : "SD: Error";
-            document.getElementById('sd-status').className = data.sd_st ? "badge on" : "badge off";
+let logData = loadLog();
 
-            // Status Indikator Relay
-            updateStatus('st-lamp', data.l_st);
-            updateStatus('st-exh', data.e_st);
-            updateStatus('st-mist', data.m_st);
-            updateStatus('st-motor', data.r_st);
+function pushLog(entry) {
+  logData.unshift(entry);
+  if (logData.length > MAX_ROWS) logData.length = MAX_ROWS;
+  saveLog(logData);
+  renderTable();
+  updateStorBar();
+}
 
-            // Update Grafik
-            const now = new Date().toLocaleTimeString('id-ID', { hour12: false });
-            if (liveChart.data.labels.length > 10) {
-                liveChart.data.labels.shift();
-                liveChart.data.datasets[0].data.shift();
-                liveChart.data.datasets[1].data.shift();
-            }
-            liveChart.data.labels.push(now);
-            liveChart.data.datasets[0].data.push(data.t);
-            liveChart.data.datasets[1].data.push(data.h);
-            liveChart.chart.update();
+/* ════════════════════════════════════════════
+   RENDER TABEL
+   ════════════════════════════════════════════ */
+function renderTable() {
+  const tbody = document.getElementById('logTable');
+  if (!logData.length) {
+    tbody.innerHTML = '<tr><td colspan="9" style="color:var(--dim);text-align:center;padding:22px">Belum ada data tersimpan</td></tr>';
+    return;
+  }
+  tbody.innerHTML = logData.slice(0, VIS_ROWS).map((r, i) => {
+    const isNew = i === 0;
+    const mc = r.motor==='ON' ? 'var(--green)' : 'var(--dim)';
+    const lc = r.lampu==='ON' ? 'var(--gold)'  : 'var(--dim)';
+    const fc = r.mist ==='ON' ? 'var(--blue)'  : 'var(--dim)';
+    const sc = r.sd   ==='OK' ? 'var(--green)' : 'var(--red)';
+    return `<tr>
+      <td style="color:var(--dim)">${logData.length - i}</td>
+      <td style="color:${isNew?'var(--cyan)':'var(--main)'}">${r.ts}</td>
+      <td style="color:var(--red)">${r.t}</td>
+      <td style="color:var(--blue)">${r.h}</td>
+      <td style="color:var(--gold)">${r.ldr}</td>
+      <td style="color:${lc}">${r.lampu}</td>
+      <td style="color:${fc}">${r.mist}</td>
+      <td style="color:${mc}">${r.motor}</td>
+      <td style="color:${sc}">${r.sd}</td>
+    </tr>`;
+  }).join('');
+}
 
-            // Tambah ke Tabel Log (Hanya 5 terakhir)
-            updateTable(now, data.t, data.h, ldrVal, data.r_st);
-        }
-    });
+/* ════════════════════════════════════════════
+   STORAGE BAR
+   ════════════════════════════════════════════ */
+function updateStorBar() {
+  const raw  = localStorage.getItem(LS_KEY) || '';
+  const bytes= new Blob([raw]).size;
+  const kb   = (bytes/1024).toFixed(1);
+  const pct  = Math.min((bytes/(5*1024*1024))*100, 100);
+  document.getElementById('storCount').textContent = logData.length + ' entri';
+  document.getElementById('storSize').textContent  = kb + ' KB / ~5 MB';
+  const fill = document.getElementById('storFill');
+  fill.style.width = pct.toFixed(1)+'%';
+  fill.className   = 'sbar-fill'+(pct>70?' warn':'');
+}
 
-    function updateStatus(id, state) {
-        const el = document.getElementById(id);
-        if (state == 1 || state === true) {
-            el.innerText = "ON";
-            el.className = "badge on";
-        } else {
-            el.innerText = "OFF";
-            el.className = "badge off";
-        }
+/* ════════════════════════════════════════════
+   DOWNLOAD EXCEL
+   ════════════════════════════════════════════ */
+function buildRows(arr) {
+  return arr.map((r,i) => ({
+    'No':             arr.length-i,
+    'Timestamp':      r.ts,
+    'Suhu (°C)':      parseFloat(r.t)||0,
+    'Kelembapan (%)': parseFloat(r.h)||0,
+    'LDR':            parseInt(r.ldr)||0,
+    'Lampu':          r.lampu,
+    'Mist Maker':     r.mist,
+    'Motor Rak':      r.motor,
+    'SD Card':        r.sd
+  }));
+}
+
+function downloadExcel(mode) {
+  let src = logData;
+  if (mode === 'today') {
+    const today = new Date().toLocaleDateString('id-ID');
+    src = logData.filter(r => r.ts.startsWith(today));
+    if (!src.length) { showToast('Tidak ada data untuk hari ini', 'err'); return; }
+  }
+  if (!src.length) { showToast('Log masih kosong', 'err'); return; }
+
+  const wb  = XLSX.utils.book_new();
+
+  /* Sheet 1 — Data Log */
+  const ws1 = XLSX.utils.json_to_sheet(buildRows(src));
+  ws1['!cols'] = [{wch:6},{wch:22},{wch:12},{wch:16},{wch:8},{wch:8},{wch:12},{wch:12},{wch:10}];
+  XLSX.utils.book_append_sheet(wb, ws1, 'Log Data');
+
+  /* Sheet 2 — Ringkasan */
+  const temps  = src.map(r=>parseFloat(r.t)).filter(v=>!isNaN(v));
+  const humids = src.map(r=>parseFloat(r.h)).filter(v=>!isNaN(v));
+  const ldrs   = src.map(r=>parseInt(r.ldr)).filter(v=>!isNaN(v));
+  const avg    = a => a.length ? (a.reduce((x,y)=>x+y,0)/a.length).toFixed(2) : 'N/A';
+  const ws2 = XLSX.utils.json_to_sheet([
+    {Statistik:'Total Entri',       Nilai:src.length},
+    {Statistik:'Data Dari',         Nilai:src[src.length-1]?.ts||'-'},
+    {Statistik:'Data Hingga',       Nilai:src[0]?.ts||'-'},
+    {Statistik:'',Nilai:''},
+    {Statistik:'Suhu Rata-rata',    Nilai:avg(temps)+' °C'},
+    {Statistik:'Suhu Minimum',      Nilai:(Math.min(...temps)||0).toFixed(2)+' °C'},
+    {Statistik:'Suhu Maksimum',     Nilai:(Math.max(...temps)||0).toFixed(2)+' °C'},
+    {Statistik:'',Nilai:''},
+    {Statistik:'Humid Rata-rata',   Nilai:avg(humids)+' %'},
+    {Statistik:'Humid Minimum',     Nilai:(Math.min(...humids)||0).toFixed(2)+' %'},
+    {Statistik:'Humid Maksimum',    Nilai:(Math.max(...humids)||0).toFixed(2)+' %'},
+    {Statistik:'',Nilai:''},
+    {Statistik:'LDR Rata-rata',     Nilai:avg(ldrs)},
+    {Statistik:'LDR Minimum',       Nilai:Math.min(...ldrs)||0},
+    {Statistik:'LDR Maksimum',      Nilai:Math.max(...ldrs)||0},
+    {Statistik:'',Nilai:''},
+    {Statistik:'Lampu ON (total)',  Nilai:src.filter(r=>r.lampu==='ON').length+' kali'},
+    {Statistik:'Mist ON (total)',   Nilai:src.filter(r=>r.mist==='ON').length+' kali'},
+    {Statistik:'Motor ON (total)',  Nilai:src.filter(r=>r.motor==='ON').length+' kali'},
+  ]);
+  ws2['!cols'] = [{wch:28},{wch:32}];
+  XLSX.utils.book_append_sheet(wb, ws2, 'Ringkasan');
+
+  const tag = mode==='today'?'_hari-ini':'_semua';
+  XLSX.writeFile(wb, 'PenetasTelur_'+new Date().toISOString().slice(0,10)+tag+'.xlsx');
+  showToast('File Excel berhasil diunduh! ('+src.length+' entri)', 'ok');
+}
+
+/* ════════════════════════════════════════════
+   DOWNLOAD CSV
+   ════════════════════════════════════════════ */
+function downloadCSV() {
+  if (!logData.length) { showToast('Log masih kosong', 'err'); return; }
+  const hdr  = 'No,Timestamp,Suhu(C),Kelembapan(%),LDR,Lampu,MistMaker,Motor,SDCard\n';
+  const body = logData.map((r,i) =>
+    [logData.length-i,'"'+r.ts+'"',r.t,r.h,r.ldr,r.lampu,r.mist,r.motor,r.sd].join(',')
+  ).join('\n');
+  const blob = new Blob(['\uFEFF'+hdr+body],{type:'text/csv;charset=utf-8'});
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href=url; a.download='PenetasTelur_'+new Date().toISOString().slice(0,10)+'.csv';
+  a.click(); URL.revokeObjectURL(url);
+  showToast('File CSV berhasil diunduh! ('+logData.length+' entri)', 'ok');
+}
+
+/* ════════════════════════════════════════════
+   HAPUS LOG
+   ════════════════════════════════════════════ */
+function confirmClear() {
+  if (!logData.length) { showToast('Log sudah kosong', 'err'); return; }
+  if (!confirm('Hapus semua '+logData.length+' entri log?\nData tidak bisa dikembalikan.\nDownload dulu sebelum menghapus!')) return;
+  logData=[]; saveLog(logData); renderTable(); updateStorBar();
+  showToast('Log berhasil dihapus', 'ok');
+}
+
+/* ════════════════════════════════════════════
+   TOAST
+   ════════════════════════════════════════════ */
+let toastT;
+function showToast(msg,type){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.className='toast '+type+' show';
+  clearTimeout(toastT); toastT=setTimeout(()=>{t.className='toast';},3500);
+}
+
+/* ════════════════════════════════════════════
+   CLOCK
+   ════════════════════════════════════════════ */
+function tick(){document.getElementById('clock').textContent=new Date().toLocaleTimeString('id-ID',{hour12:false});}
+setInterval(tick,1000); tick();
+
+/* ════════════════════════════════════════════
+   CHART.JS
+   ════════════════════════════════════════════ */
+const ctx = document.getElementById('lineChart').getContext('2d');
+const cd  = {
+  labels:[],
+  datasets:[
+    {label:'Suhu (°C)',      data:[],borderColor:'#ff4d6d',backgroundColor:'rgba(255,77,109,.1)',tension:.4,fill:true,pointBackgroundColor:'#ff4d6d',pointRadius:3},
+    {label:'Kelembapan (%)',data:[],borderColor:'#1e90ff',backgroundColor:'rgba(30,144,255,.08)',tension:.4,fill:true,pointBackgroundColor:'#1e90ff',pointRadius:3}
+  ]
+};
+const chart = new Chart(ctx,{
+  type:'line',data:cd,
+  options:{
+    responsive:true,animation:{duration:300},
+    plugins:{legend:{labels:{color:'#c8e0ff',font:{family:'Share Tech Mono',size:11}}}},
+    scales:{
+      x:{ticks:{color:'#4a6a9a',font:{family:'Share Tech Mono',size:10},maxTicksLimit:10},grid:{color:'rgba(26,58,106,.4)'}},
+      y:{ticks:{color:'#4a6a9a',font:{family:'Share Tech Mono',size:10}},grid:{color:'rgba(26,58,106,.4)'}}
     }
+  }
+});
 
-    const logs = [];
-    function updateTable(time, t, h, l, motor) {
-        const tableBody = document.getElementById('log-body');
-        const motorText = motor ? '<span class="dot-on indicator-dot"></span>Running' : '<span class="dot-off indicator-dot"></span>Stopped';
-        
-        logs.unshift({ time, t, h, l, motorText });
-        if (logs.length > 5) logs.pop();
+function addChartPt(t,h){
+  cd.labels.push(new Date().toLocaleTimeString('id-ID',{hour12:false}));
+  cd.datasets[0].data.push(t); cd.datasets[1].data.push(h);
+  if(cd.labels.length>20){cd.labels.shift();cd.datasets[0].data.shift();cd.datasets[1].data.shift();}
+  chart.update();
+}
 
-        tableBody.innerHTML = logs.map(log => `
-            <tr>
-                <td>${log.time}</td>
-                <td>${log.t.toFixed(1)}°C</td>
-                <td>${log.h.toFixed(0)}%</td>
-                <td>${log.l} Lux</td>
-                <td>${log.motorText}</td>
-            </tr>
-        `).join('');
-    }
+/* ════════════════════════════════════════════
+   STATUS DOT
+   ════════════════════════════════════════════ */
+function setDot(id,on,onL='ON',offL='OFF'){
+  document.getElementById('dot-'+id).className='sdot '+(on?'on':'off');
+  const l=document.getElementById('lbl-'+id);
+  l.className='slbl '+(on?'on':'off');
+  l.textContent=on?onL:offL;
+}
+
+/* ════════════════════════════════════════════
+   FIREBASE INIT & LISTENER
+   ════════════════════════════════════════════ */
+firebase.initializeApp(firebaseConfig);
+const db  = firebase.database();
+const ref = db.ref('/inkubator/live');
+
+let lastHash = '';
+
+ref.on('value', snap => {
+  const d = snap.val(); if (!d) return;
+
+  document.getElementById('valSuhu').textContent  = parseFloat(d.t  ??0).toFixed(1);
+  document.getElementById('valHumid').textContent = parseFloat(d.h  ??0).toFixed(1);
+  document.getElementById('valLDR').textContent   = d.ldr ?? '—';
+
+  setDot('lampu', d.l_st  === 'ON');
+  setDot('mist',  d.m_st  === 'ON');
+  setDot('motor', d.r_st  === 'ON');
+  setDot('sd',    d.sd_st === 'OK', 'OK', 'ERROR');
+
+  addChartPt(parseFloat(d.t??0), parseFloat(d.h??0));
+
+  /* simpan hanya jika data berubah */
+  const hash = `${d.t}|${d.h}|${d.ldr}|${d.l_st}|${d.m_st}|${d.r_st}`;
+  if (hash === lastHash) return;
+  lastHash = hash;
+
+  pushLog({
+    ts:    new Date().toLocaleString('id-ID'),
+    t:     parseFloat(d.t  ??0).toFixed(1),
+    h:     parseFloat(d.h  ??0).toFixed(1),
+    ldr:   String(d.ldr   ??0),
+    lampu: d.l_st  ?? 'OFF',
+    mist:  d.m_st  ?? 'OFF',
+    motor: d.r_st  ?? 'OFF',
+    sd:    d.sd_st ?? 'ERROR'
+  });
+}, err => console.error('[Firebase Error]', err));
+
+/* Connection badge */
+db.ref('.info/connected').on('value', snap => {
+  const b=document.getElementById('connBadge');
+  const t=document.getElementById('connText');
+  b.className = snap.val()?'badge online':'badge offline';
+  t.textContent = snap.val()?'ONLINE':'OFFLINE';
+});
+
+/* ════════════════════════════════════════════
+   INIT — render log lama yang sudah tersimpan
+   ════════════════════════════════════════════ */
+renderTable();
+updateStorBar();
+if (logData.length) showToast(logData.length+' entri log dimuat dari penyimpanan lokal', 'ok');
 </script>
-
 </body>
 </html>
