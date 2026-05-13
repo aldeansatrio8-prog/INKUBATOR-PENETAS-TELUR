@@ -161,13 +161,14 @@
 
 <script>
     lucide.createIcons();
+    // Konfigurasi Firebase
     const firebaseConfig = { databaseURL: "https://penetas-telur-553a3-default-rtdb.asia-southeast1.firebasedatabase.app" };
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    let historyData = []; // Untuk menyimpan data yang akan di-export
+    let historyData = []; // Array penampung data untuk export
 
-    // Chart
+    // Inisialisasi Chart
     const ctx = document.getElementById('mainChart').getContext('2d');
     const mainChart = new Chart(ctx, {
         type: 'line',
@@ -175,21 +176,31 @@
             { label: 'Suhu', borderColor: '#00f2ff', data: [], tension: 0.4, pointRadius: 2, backgroundColor: 'rgba(0,242,255,0.1)', fill: true },
             { label: 'Humi', borderColor: '#7000ff', data: [], tension: 0.4, pointRadius: 2 }
         ]},
-        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { grid: { color: 'rgba(255,255,255,0.05)' } }, x: { grid: { display: false } } } }
+        options: { 
+            responsive: true, 
+            maintainAspectRatio: false, 
+            plugins: { legend: { display: false } }, 
+            scales: { 
+                y: { grid: { color: 'rgba(255,255,255,0.05)' } }, 
+                x: { grid: { display: false } } 
+            } 
+        }
     });
 
-    // Monitor Data Live
+    // Listener Data Live (Realtime)
     db.ref('inkubator/live').on('value', snap => {
         const d = snap.val();
         if(!d) return;
 
-        document.getElementById('val-t').innerText = d.t.toFixed(1);
-        document.getElementById('val-h').innerText = Math.round(d.h);
+        // Update teks angka
+        document.getElementById('val-t').innerText = d.t ? d.t.toFixed(1) : "--.-";
+        document.getElementById('val-h').innerText = d.h ? Math.round(d.h) : "--";
         document.getElementById('val-time').innerText = d.ts || "--:--:--";
         
+        // Status SD Card
         const sdTxt = document.getElementById('val-sd');
         const sdCont = document.getElementById('sd-status-container');
-        if(d.sd_st) {
+        if(d.sd_st === true) {
             sdTxt.innerText = "SD CARD: OK";
             sdTxt.className = "text-[11px] font-black tracking-widest uppercase text-emerald-400";
             sdCont.style.borderColor = "rgba(16, 185, 129, 0.3)";
@@ -201,6 +212,7 @@
 
         document.getElementById('connection-status').innerHTML = `<div class="w-2 h-2 rounded-full bg-emerald-500"></div> Online`;
 
+        // Update Status Komponen (Lampu, Mist, dll)
         const updateComp = (id, st, iconId) => {
             const card = document.getElementById('card-'+id);
             const txt = document.getElementById('txt-'+id);
@@ -220,37 +232,56 @@
         updateComp('roll', d.r_st, 'icon-roll');
     });
 
-    // History & Export Logic
-    db.ref('inkubator/history').limitToLast(50).on('value', snap => {
+    // Listener Riwayat Log (History)
+    db.ref('inkubator/history').limitToLast(100).on('value', snap => {
         let labels=[], temps=[], hums=[], rows="";
         historyData = []; 
         
         snap.forEach(c => { 
             const val = c.val();
+            // Parsing waktu: Jika ESP kirim angka (ms), lsg pakai. Jika string, parsing dulu.
             const date = new Date(val.ts);
             const timeStr = date.toLocaleString('id-ID');
             
+            // Simpan ke array untuk CSV
             historyData.push({ waktu: timeStr, suhu: val.t, lembap: val.h });
             
+            // Data untuk Chart
             labels.push(date.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}));
             temps.push(val.t); 
             hums.push(val.h);
         });
         
+        // Update Chart
         mainChart.data.labels = labels;
         mainChart.data.datasets[0].data = temps;
         mainChart.data.datasets[1].data = hums;
         mainChart.update();
 
+        // Update Tabel (Data terbaru di atas)
         [...historyData].reverse().forEach(v => {
-            rows += `<tr><td class="py-2 text-slate-400">${v.waktu}</td><td class="text-center font-bold text-cyan-400">${v.suhu.toFixed(1)}</td><td class="text-center text-indigo-400">${Math.round(v.lembap)}</td></tr>`;
+            rows += `<tr>
+                <td class="py-2 text-slate-400">${v.waktu}</td>
+                <td class="text-center font-bold text-cyan-400">${v.suhu ? v.suhu.toFixed(1) : '--'}</td>
+                <td class="text-center text-indigo-400">${v.lembap ? Math.round(v.lembap) : '--'}</td>
+            </tr>`;
         });
         document.getElementById('table-body').innerHTML = rows;
+
+        // Hitung Hari Ke (Berdasarkan data pertama di history)
+        if(historyData.length > 0) {
+            const firstDate = new Date(historyData[0].waktu.split(' ')[0].split('/').reverse().join('-'));
+            const diff = Math.floor((new Date() - firstDate) / (1000 * 60 * 60 * 24)) + 1;
+            document.getElementById('day-counter').innerText = "HARI KE: " + diff;
+        }
     });
 
-    // FUNGSI DOWNLOAD CSV
+    // Fungsi Export CSV
     function downloadCSV() {
-        if(historyData.length === 0) return alert("Belum ada data untuk didownload");
+        if(historyData.length === 0) {
+            alert("Belum ada data history yang tersimpan di Cloud.");
+            return;
+        }
         
         let csvContent = "data:text/csv;charset=utf-8,Waktu,Suhu (C),Kelembapan (%)\n";
         historyData.forEach(row => {
@@ -260,7 +291,7 @@
         const encodedUri = encodeURI(csvContent);
         const link = document.createElement("a");
         link.setAttribute("href", encodedUri);
-        link.setAttribute("download", "log_inkubator_" + new Date().getTime() + ".csv");
+        link.setAttribute("download", "Nexus_Log_" + new Date().toISOString().slice(0,10) + ".csv");
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
