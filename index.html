@@ -57,6 +57,12 @@
             to { transform: rotate(360deg); }
         }
         .spinning { animation: spin-slow 2s linear infinite; }
+
+        /* Custom Scrollbar for Table */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
     </style>
 </head>
 <body class="p-4 md:p-8">
@@ -146,16 +152,47 @@
         </div>
     </div>
 
-    <!-- Charts -->
-    <div class="glass p-6">
-        <div class="flex justify-between items-center mb-6">
-            <h3 class="font-bold text-lg">Grafik Real-Time</h3>
-            <button onclick="downloadLog()" class="bg-emerald-500 hover:bg-emerald-600 text-slate-900 px-4 py-2 rounded-xl text-xs font-black transition-colors flex items-center gap-2">
-                <i data-lucide="download" size="14"></i> EXCEL LOG
-            </button>
+    <!-- Charts & Table -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Chart -->
+        <div class="glass p-6 lg:col-span-2">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="font-bold text-lg">Grafik Real-Time</h3>
+                <div class="flex gap-2">
+                    <span class="flex items-center gap-1 text-[10px] text-cyan-400 font-bold"><span class="w-2 h-2 bg-cyan-400 rounded-full"></span> SUHU</span>
+                    <span class="flex items-center gap-1 text-[10px] text-indigo-400 font-bold"><span class="w-2 h-2 bg-indigo-400 rounded-full"></span> LEMBAP</span>
+                </div>
+            </div>
+            <div class="h-64">
+                <canvas id="mainChart"></canvas>
+            </div>
         </div>
-        <div class="h-64">
-            <canvas id="mainChart"></canvas>
+
+        <!-- History Table -->
+        <div class="glass p-6 overflow-hidden flex flex-col">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="font-bold text-lg">Log Riwayat</h3>
+                <button onclick="downloadLog()" class="text-cyan-400 hover:text-white transition-colors">
+                    <i data-lucide="download" size="18"></i>
+                </button>
+            </div>
+            <div class="flex-grow overflow-y-auto pr-2">
+                <table class="w-full text-left text-xs">
+                    <thead class="sticky top-0 bg-slate-900 text-slate-500 font-bold uppercase tracking-wider">
+                        <tr>
+                            <th class="py-2">Waktu</th>
+                            <th class="py-2 text-center">T (°C)</th>
+                            <th class="py-2 text-center">H (%)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="table-body" class="divide-y divide-white/5">
+                        <!-- Data rows injected here -->
+                        <tr>
+                            <td colspan="3" class="py-8 text-center text-slate-500">Menunggu data...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
 </div>
@@ -234,30 +271,52 @@
         updateComponent('roll', d.r_st, 'icon-roll');
     });
 
-    // History Logic (For Day Counter & Chart)
-    db.ref('inkubator/history').limitToLast(30).on('value', snap => {
+    // History Logic (For Day Counter, Chart & Table)
+    db.ref('inkubator/history').limitToLast(15).on('value', snap => {
         let labels = [], temps = [], hums = [];
+        let tableHtml = "";
+        
+        // Convert object to array for reversing (agar data terbaru di atas tabel)
+        let items = [];
         snap.forEach(child => {
-            const v = child.val();
-            labels.push(new Date(v.ts).toLocaleTimeString());
+            items.push(child.val());
+        });
+        
+        // Update Chart (data urut waktu)
+        items.forEach(v => {
+            labels.push(new Date(v.ts).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}));
             temps.push(v.t);
             hums.push(v.h);
         });
+        
         mainChart.data.labels = labels;
         mainChart.data.datasets[0].data = temps;
         mainChart.data.datasets[1].data = hums;
         mainChart.update();
 
+        // Update Table (data dibalik agar terbaru paling atas)
+        items.reverse().forEach(v => {
+            const timeStr = new Date(v.ts).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+            tableHtml += `
+                <tr class="hover:bg-white/5 transition-colors">
+                    <td class="py-3 font-mono text-slate-400">${timeStr}</td>
+                    <td class="py-3 text-center font-bold text-cyan-400">${v.t.toFixed(1)}°</td>
+                    <td class="py-3 text-center font-bold text-indigo-400">${Math.round(v.h)}%</td>
+                </tr>
+            `;
+        });
+        document.getElementById('table-body').innerHTML = tableHtml || '<tr><td colspan="3" class="py-8 text-center text-slate-500">Belum ada data history</td></tr>';
+
         // Simple Day Counter from history
-        if(snap.exists()){
-            const first = new Date(Object.values(snap.val())[0].ts);
+        if(items.length > 0){
+            const first = new Date(items[items.length - 1].ts); // index terakhir karena sudah di reverse
             const diff = Math.floor((new Date() - first) / 86400000) + 1;
             document.getElementById('day-counter').innerText = "HARI KE: " + diff;
         }
     });
 
     function downloadLog() {
-        alert("Menyiapkan data log dari SD Card... Pastikan SD Card Ready.");
+        alert("Fungsi Ekspor Log: Menyiapkan data CSV dari database...");
     }
 </script>
 </body>
