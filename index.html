@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Nexus v5.3 | Smart Incubator</title>
+    <title>Nexus v5.6 | Smart Incubator</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
@@ -13,21 +13,40 @@
     <style>
         body { font-family: 'Plus Jakarta Sans', sans-serif; background: #0f172a; color: #f8fafc; }
         .glass { background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.08); }
-        .table-container::-webkit-scrollbar { width: 6px; }
-        .table-container::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
+        .table-container::-webkit-scrollbar, .log-container::-webkit-scrollbar { width: 6px; }
+        .table-container::-webkit-scrollbar-thumb, .log-container::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
         .status-on { color: #4ade80; font-weight: bold; }
         .status-off { color: #f87171; font-weight: bold; }
         .card-glow { transition: all 0.3s ease; }
         .card-glow:hover { border-color: rgba(74, 222, 128, 0.4); box-shadow: 0 0 20px rgba(74, 222, 128, 0.1); }
+        .emergency-glow { animation: red-pulse 1.5s infinite; }
+        @keyframes red-pulse {
+            0% { border-color: rgba(239, 68, 68, 0.4); box-shadow: 0 0 10px rgba(239, 68, 68, 0.2); }
+            50% { border-color: rgba(239, 68, 68, 0.9); box-shadow: 0 0 25px rgba(239, 68, 68, 0.5); }
+            100% { border-color: rgba(239, 68, 68, 0.4); box-shadow: 0 0 10px rgba(239, 68, 68, 0.2); }
+        }
     </style>
 </head>
 <body class="p-4 md:p-8">
 
     <div class="max-w-7xl mx-auto">
+        
+        <!-- BANNER DARURAT (FAIL-SAFE INDICATOR) -->
+        <div id="emergency-banner" class="hidden mb-6 p-4 bg-red-950/80 border border-red-500 text-red-200 rounded-2xl flex items-center justify-between gap-4 emergency-glow">
+            <div class="flex items-center gap-3">
+                <span class="text-2xl">⚠️</span>
+                <div>
+                    <h4 class="font-extrabold text-sm uppercase tracking-wider">KAAYAAN DARURAT (FAIL-SAFE AKTIF)</h4>
+                    <p class="text-xs text-red-300">Sensor DHT22 teu kadeteksi atanapi rusak! Sistem otomatis mareuman lampu pemanas pikeun kasalametan endog.</p>
+                </div>
+            </div>
+            <span class="px-3 py-1 bg-red-600 text-white font-extrabold text-xs rounded-lg animate-pulse">DARURAT</span>
+        </div>
+
         <!-- Header -->
         <header class="flex flex-col md:flex-row justify-between items-start mb-10 gap-4">
             <div>
-                <h1 class="text-3xl font-extrabold tracking-tight">NEXUS <span class="text-green-400">COMMANDER V5.3</span></h1>
+                <h1 class="text-3xl font-extrabold tracking-tight">NEXUS <span class="text-green-400">COMMANDER V5.6</span></h1>
                 <p class="text-slate-400">Monitoring Real-time & Data Logging Cloud</p>
             </div>
             <div class="flex gap-2 flex-wrap">
@@ -35,7 +54,7 @@
                     <span id="sd-dot" class="h-2 w-2 rounded-full bg-yellow-500 animate-pulse"></span> SD CARD: LOADING...
                 </div>
                 <button onclick="exportHistory()" class="bg-green-600 hover:bg-green-700 text-white px-5 py-2 rounded-xl text-sm font-bold transition shadow-lg shadow-green-900/20">
-                    📥 Export ke Excel
+                    📥 Export ka Excel
                 </button>
             </div>
         </header>
@@ -47,20 +66,27 @@
                 <h2 id="temp-val" class="text-5xl font-bold text-green-400">--.-</h2>
             </div>
             <div class="glass p-6 rounded-3xl card-glow">
-                <p class="text-slate-400 text-xs mb-1 uppercase tracking-widest">Lembap (%)</p>
+                <p class="text-slate-400 text-xs mb-1 uppercase tracking-widest">Lembab (%)</p>
                 <h2 id="humi-val" class="text-5xl font-bold text-blue-400">--</h2>
             </div>
             <div class="glass p-6 rounded-3xl card-glow">
-                <p class="text-slate-400 text-xs mb-1 uppercase tracking-widest">Cahaya (Lux)</p>
+                <p class="text-slate-400 text-xs mb-1 uppercase tracking-widest">Cahaya (Index)</p>
                 <h2 id="ldr-val" class="text-5xl font-bold text-yellow-400">---</h2>
             </div>
-            <div class="glass p-6 rounded-3xl card-glow border-l-4 border-blue-500">
-                <p class="text-slate-400 text-xs mb-1 uppercase tracking-widest">Motor Status</p>
-                <h2 id="motor-st" class="text-2xl font-bold">MENGHUBUNG...</h2>
+            <div class="glass p-6 rounded-3xl card-glow border-l-4 border-blue-500 flex flex-col justify-between">
+                <div>
+                    <p class="text-slate-400 text-xs mb-1 uppercase tracking-widest">Status Motor</p>
+                    <h2 id="motor-st" class="text-2xl font-bold">MENGHUBUNG...</h2>
+                </div>
+                <!-- COUNTDOWN TIMER PUTARAN MOTOR -->
+                <div class="mt-2 text-xs text-slate-400 font-mono" id="motor-countdown">
+                    Muter deui dina: -- Menit
+                </div>
             </div>
         </div>
 
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Middle Content Grid -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
             <!-- Left: Real-time Chart -->
             <div class="lg:col-span-2 glass p-6 rounded-3xl">
                 <div class="flex justify-between items-center mb-6">
@@ -76,7 +102,7 @@
             </div>
 
             <!-- Right: Persistent Log Table -->
-            <div class="glass p-6 rounded-3xl flex flex-col h-[450px]">
+            <div class="glass p-6 rounded-3xl flex flex-col h-[410px]">
                 <div class="flex justify-between items-center mb-4">
                     <h3 class="font-bold">Riwayat Logging</h3>
                     <span class="text-[10px] bg-green-900/20 text-green-400 px-2 py-1 rounded">PERSISTEN</span>
@@ -87,7 +113,7 @@
                             <tr>
                                 <th class="pb-2 pl-2">Waktu</th>
                                 <th class="pb-2">Suhu</th>
-                                <th class="pb-2">Humi</th>
+                                <th class="pb-2">Lembab</th>
                             </tr>
                         </thead>
                         <tbody id="history-table-body" class="text-slate-300">
@@ -98,10 +124,29 @@
                 <p class="text-[9px] text-slate-500 mt-4 italic">*Data disimpan otomatis setiap 30 menit ke Cloud.</p>
             </div>
         </div>
+
+        <!-- Bottom: Live Event Log (IDE INOVATIF TERBARU) -->
+        <div class="glass p-6 rounded-3xl mb-8">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="font-bold text-lg flex items-center gap-2">
+                    <span class="relative flex h-3 w-3">
+                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                        <span class="relative inline-flex rounded-full h-3 w-3 bg-blue-500"></span>
+                    </span>
+                    Pusat Log Aktivitas Real-time (Live)
+                </h3>
+                <button onclick="clearLiveLogs()" class="text-xs text-slate-400 hover:text-white transition">Hapus Log</button>
+            </div>
+            <div id="live-event-container" class="log-container h-[150px] overflow-y-auto space-y-2 text-xs font-mono pr-2">
+                <!-- Log peristiwa akan masuk di sini secara otomatis -->
+                <div class="text-slate-500 italic">[SISTEM] Ngamimitian ngawaskeun aktivitas alat...</div>
+            </div>
+        </div>
+
     </div>
 
     <script>
-        // FIREBASE V5.3 CONFIGURATION
+        // FIREBASE V5.6 CONFIGURATION
         const firebaseConfig = {
             apiKey: "AIzaSyCDz2IvAAzkPbUmY1APGBS1GRpVIOpv5g8",
             authDomain: "penetas-telur-553a3.firebaseapp.com",
@@ -114,6 +159,14 @@
 
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
+
+        // State tracker untuk melacak transisi status (Heater, Kipas, dsb)
+        let previousStates = {
+            l_st: null,
+            f_st: null,
+            r_st: null,
+            dht_err: null
+        };
 
         // CHART SETUP
         const ctx = document.getElementById('liveChart').getContext('2d');
@@ -149,9 +202,24 @@
             const data = snapshot.val();
             if(!data) return;
 
-            // Update Labels
-            document.getElementById('temp-val').innerText = data.t.toFixed(1);
-            document.getElementById('humi-val').innerText = data.h.toFixed(0);
+            const isSensorError = data.dht_err === true;
+
+            // Handle Fail-Safe & Emergency Banner
+            const emergencyBanner = document.getElementById('emergency-banner');
+            if (isSensorError) {
+                emergencyBanner.classList.remove('hidden');
+                document.getElementById('temp-val').innerText = "ERROR";
+                document.getElementById('temp-val').className = "text-5xl font-bold text-red-500";
+                document.getElementById('humi-val').innerText = "ERROR";
+                document.getElementById('humi-val').className = "text-5xl font-bold text-red-500";
+            } else {
+                emergencyBanner.classList.add('hidden');
+                document.getElementById('temp-val').innerText = data.t.toFixed(1);
+                document.getElementById('temp-val').className = "text-5xl font-bold text-green-400";
+                document.getElementById('humi-val').innerText = data.h.toFixed(0);
+                document.getElementById('humi-val').className = "text-5xl font-bold text-blue-400";
+            }
+
             document.getElementById('ldr-val').innerText = data.ldr;
             document.getElementById('motor-st').innerText = data.r_st ? "BERPUTAR" : "STANDBY";
             document.getElementById('motor-st').className = data.r_st ? "text-2xl font-bold text-blue-400 animate-pulse" : "text-2xl font-bold text-slate-500";
@@ -159,27 +227,32 @@
             document.getElementById('lamp-st').innerText = data.l_st ? "ON" : "OFF";
             document.getElementById('lamp-st').className = data.l_st ? "status-on" : "status-off";
             
-            document.getElementById('fan-st').innerText = (data.f_st || data.m_st || data.e_st) ? "ON" : "OFF";
-            document.getElementById('fan-st').className = (data.f_st || data.m_st || data.e_st) ? "status-on" : "status-off";
+            document.getElementById('fan-st').innerText = data.f_st ? "ON" : "OFF";
+            document.getElementById('fan-st').className = data.f_st ? "status-on" : "status-off";
 
             // SD Card Status
             const sdBadge = document.getElementById('sd-badge');
             if(data.sd_st) {
                 sdBadge.innerHTML = `<span class="h-2 w-2 rounded-full bg-green-400 shadow-[0_0_8px_#4ade80]"></span> SD CARD: READY`;
-                sdBadge.classList.replace('border-slate-700', 'border-green-500/30');
+                sdBadge.className = "glass px-4 py-2 rounded-xl text-xs font-bold border border-green-500/30 text-green-400 flex items-center gap-2";
             } else {
                 sdBadge.innerHTML = `<span class="h-2 w-2 rounded-full bg-red-500 shadow-[0_0_8px_#f87171]"></span> SD CARD: ERROR`;
-                sdBadge.classList.replace('border-slate-700', 'border-red-500/30');
+                sdBadge.className = "glass px-4 py-2 rounded-xl text-xs font-bold border border-red-500/30 text-red-400 flex items-center gap-2";
             }
 
-            // Chart Update
-            if(chart.data.labels.length > 25) { chart.data.labels.shift(); chart.data.datasets[0].data.shift(); }
-            chart.data.labels.push(""); 
-            chart.data.datasets[0].data.push(data.t);
-            chart.update('none');
+            // Real-time Event Logger (Mencatat perubahan status perangkat secara instan)
+            logStateChanges(data);
+
+            // Update Chart (Hanya update jika sensor normal)
+            if (!isSensorError) {
+                if(chart.data.labels.length > 25) { chart.data.labels.shift(); chart.data.datasets[0].data.shift(); }
+                chart.data.labels.push(""); 
+                chart.data.datasets[0].data.push(data.t);
+                chart.update('none');
+            }
         });
 
-        // 2. HISTORY DATA LISTENER (Persistent)
+        // 2. HISTORY DATA LISTENER (Persistent - Tidak Akan Hilang saat Refresh)
         db.ref('/inkubator/history').limitToLast(30).on('value', (snapshot) => {
             const history = snapshot.val();
             const tableBody = document.getElementById('history-table-body');
@@ -203,7 +276,89 @@
             }
         });
 
-        // EXPORT FUNCTION
+        // CALCULATE MOTOR COUNTDOWN (Menit tersisa sampai menit ke-00 jam berikutnya)
+        setInterval(() => {
+            const currentMinute = new Date().getMinutes();
+            const minutesRemaining = 60 - currentMinute;
+            
+            const countdownEl = document.getElementById('motor-countdown');
+            if (minutesRemaining === 60 || minutesRemaining === 0) {
+                countdownEl.innerText = "Muter deui dina: Sakedap deui (Jam Bulat)";
+                countdownEl.className = "mt-2 text-xs text-blue-400 font-extrabold animate-pulse";
+            } else {
+                countdownEl.innerText = `Muter deui dina: ${minutesRemaining} Menit`;
+                countdownEl.className = "mt-2 text-xs text-slate-400 font-mono";
+            }
+        }, 1000);
+
+        // REAL-TIME STATE LOGGER FUNCTION
+        function logStateChanges(data) {
+            const container = document.getElementById('live-event-container');
+            const timeStr = new Date().toLocaleTimeString('id-ID', {hour: '2-digit', minute: '2-digit', second: '2-digit'});
+
+            const appendLog = (message, colorClass) => {
+                const logItem = document.createElement('div');
+                logItem.className = `${colorClass} py-0.5 border-b border-white/5 animate-fade-in`;
+                logItem.innerHTML = `<span class="text-slate-500">[${timeStr}]</span> ${message}`;
+                container.insertBefore(logItem, container.firstChild);
+                
+                // Batasi maksimal 20 log di layar
+                if (container.children.length > 20) {
+                    container.removeChild(container.lastChild);
+                }
+            };
+
+            // Deteksi sensor error
+            if (data.dht_err !== previousStates.dht_err && previousStates.dht_err !== null) {
+                if (data.dht_err) {
+                    appendLog("⚠️ [ALARM] Sensor DHT22 teu kadeteksi! Fail-safe diaktifkeun.", "text-red-400 font-bold");
+                } else {
+                    appendLog("✅ [SISTEM] Sensor parantos normal deui.", "text-green-400 font-bold");
+                }
+            }
+
+            // Deteksi Lampu
+            if (data.l_st !== previousStates.l_st && previousStates.l_st !== null) {
+                if (data.l_st) {
+                    appendLog("💡 Lampu Pemanas diganti ka status: HURUNG (Suhu handap)", "text-orange-300");
+                } else {
+                    appendLog("💡 Lampu Pemanas diganti ka status: PAREUM (Suhu optimal)", "text-slate-400");
+                }
+            }
+
+            // Deteksi Kipas
+            if (data.f_st !== previousStates.f_st && previousStates.f_st !== null) {
+                if (data.f_st) {
+                    appendLog("🌀 Kipas Simultan diganti ka status: AKTIF (Miceun panas/lembab)", "text-blue-300");
+                } else {
+                    appendLog("🌀 Kipas Simultan diganti ka status: PAREUM", "text-slate-400");
+                }
+            }
+
+            // Deteksi Motor Rak
+            if (data.r_st !== previousStates.r_st && previousStates.r_st !== null) {
+                if (data.r_st) {
+                    appendLog("⚙️ [EVENT] Motor Rak Endog mimiti muter (Pulsing aktif)...", "text-yellow-300 font-bold");
+                } else {
+                    appendLog("⚙️ [EVENT] Motor Rak Endog parantos eureun.", "text-slate-400");
+                }
+            }
+
+            // Update state lama
+            previousStates = {
+                l_st: data.l_st,
+                f_st: data.f_st,
+                r_st: data.r_st,
+                dht_err: data.dht_err
+            };
+        }
+
+        function clearLiveLogs() {
+            const container = document.getElementById('live-event-container');
+            container.innerHTML = `<div class="text-slate-500 italic">[SISTEM] Log parantos diberesihan...</div>`;
+        }
+
+        // EXPORT FUNCTION (Mengambil history permanen tanpa mereset)
         function exportHistory() {
             db.ref('/inkubator/history').once('value').then(snap => {
                 const data = snap.val();
@@ -219,7 +374,7 @@
                 const ws = XLSX.utils.json_to_sheet(rows);
                 const wb = XLSX.utils.book_new();
                 XLSX.utils.book_append_sheet(wb, ws, "Log_Inkubator");
-                XLSX.writeFile(wb, "Nexus_V53_Logging.xlsx");
+                XLSX.writeFile(wb, "Nexus_V56_Logging.xlsx");
             });
         }
     </script>
